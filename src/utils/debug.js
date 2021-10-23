@@ -1,10 +1,10 @@
-import debugModule from 'debug'
+import _debug from 'debug'
 
 function log(namespace, message) {
-  const debug = debugModule(namespace)
+  const debug = _debug(namespace)
   debug(message)
 }
 
 export default {
-  log
+  log,
 }

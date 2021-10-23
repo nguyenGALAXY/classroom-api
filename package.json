@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node ./dist/bin/www.js",
-    "dev": "DEBUG=*,-babel*,-nodemon* nodemon --exec babel-node ./src/bin/www",
+    "dev": "DEBUG=*,-babel*,-nodemon*,-express*,-sequelize:*,-body-parser*,-morgan* nodemon --exec babel-node ./src/bin/www",
     "lint": "eslint src/**/* src/",
     "lint:fix": "eslint src/**/* src/ --fix",
     "build": "yarn clean && babel ./src --out-dir dist --copy-files",
@@ -21,6 +21,7 @@
     "jade": "~1.11.0",
     "morgan": "~1.9.1",
     "pg": "^8.7.1",
+    "route-decorators": "^0.2.2",
     "sequelize": "^6.7.0",
     "sequelize-cli": "^6.2.0"
   },
@@ -29,6 +30,7 @@
     "@babel/core": "^7.15.8",
     "@babel/eslint-parser": "^7.15.8",
     "@babel/node": "^7.15.8",
+    "@babel/plugin-proposal-decorators": "^7.15.8",
     "@babel/preset-env": "^7.15.8",
     "eslint": "^8.0.1",
     "eslint-config-prettier": "^8.3.0",

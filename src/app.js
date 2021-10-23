@@ -4,8 +4,10 @@ import cookieParser from 'cookie-parser'
 import logger from 'morgan'
 import swaggerJSDoc from 'swagger-jsdoc'
 import swaggerUI from 'swagger-ui-express'
-import usersRouter from './routes/users.route'
-import classroomsRouter from './routes/classrooms.route'
+import classroomCtrl from './controllers/classrooms.controller'
+import routes from './routes'
+// import usersRouter from './routes/users.route'
+// import classroomsRouter from './routes/classrooms.route'
 
 require('dotenv').config()
 
@@ -16,15 +18,15 @@ const options = {
       title: 'Classroom API',
       version: '1.0.0',
       description:
-        'This is a simple CRUD API application made with Express and documented with Swagger'
+        'This is a simple CRUD API application made with Express and documented with Swagger',
     },
     servers: [
       {
-        url: `${process.env.URL}:${process.env.PORT}`
-      }
-    ]
+        url: `${process.env.URL}:${process.env.PORT}`,
+      },
+    ],
   },
-  apis: ['src/routes/*.js']
+  apis: ['src/routes/*.js'],
 }
 
 const specs = swaggerJSDoc(options)
@@ -37,9 +39,7 @@ app.use(express.urlencoded({ extended: false }))
 app.use(cookieParser())
 
 app.use('/api-docs', swaggerUI.serve, swaggerUI.setup(specs))
-
-app.use('/api/users', usersRouter)
-app.use('/api/classrooms', classroomsRouter)
+app.use(routes)
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
