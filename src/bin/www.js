@@ -5,10 +5,8 @@
  */
 
 import app from '../app'
-import debugModule from 'debug'
+import debug from '../utils/debug'
 import http from 'http'
-
-const debug = debugModule('api:server')
 
 /**
  * Get port from environment and store in Express.
@@ -65,11 +63,11 @@ function onError(error) {
   // handle specific listen errors with friendly messages
   switch (error.code) {
     case 'EACCES':
-      debug(bind + ' requires elevated privileges')
+      // debug(bind + ' requires elevated privileges')
       process.exit(1)
       break
     case 'EADDRINUSE':
-      debug(bind + ' is already in use')
+      // debug(bind + ' is already in use')
       process.exit(1)
       break
     default:
@@ -84,5 +82,5 @@ function onError(error) {
 function onListening() {
   var addr = server.address()
   var bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port
-  debug('Listening on ' + bind)
+  debug.log('api', 'listening on ' + bind)
 }
