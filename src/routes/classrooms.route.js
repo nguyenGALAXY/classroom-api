@@ -3,6 +3,17 @@ import classroomsController from '../controllers/classrooms.controller'
 
 const router = express.Router()
 
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Classroom:
+ *       type: object
+ *       properties:
+ *         name:
+ *           type: string
+ */
+
 router.get('/', classroomsController.getClassrooms)
 router.post('/', classroomsController.createClassroom)
 

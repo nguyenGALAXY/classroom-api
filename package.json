@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "start": "node ./dist/bin/www.js",
-    "dev": "DEBUG=* nodemon --exec babel-node ./src/bin/www",
+    "dev": "DEBUG=*,-babel*,-nodemon* nodemon --exec babel-node ./src/bin/www",
     "lint": "eslint src/**/* src/",
     "lint:fix": "eslint src/**/* src/ --fix",
     "build": "yarn clean && babel ./src --out-dir dist --copy-files",
@@ -34,6 +34,8 @@
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-prettier": "^4.0.0",
     "nodemon": "^2.0.14",
-    "prettier": "^2.4.1"
+    "prettier": "^2.4.1",
+    "swagger-jsdoc": "^6.1.0",
+    "swagger-ui-express": "^4.1.6"
   }
 }
