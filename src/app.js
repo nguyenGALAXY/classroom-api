@@ -2,7 +2,8 @@ import createError from 'http-errors'
 import express from 'express'
 import cookieParser from 'cookie-parser'
 import logger from 'morgan'
-import userRouter from './routes/users.route'
+import usersRouter from './routes/users.route'
+import classroomsRouter from './routes/classrooms.route'
 
 require('dotenv').config()
 
@@ -13,7 +14,8 @@ app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 app.use(cookieParser())
 
-app.use('/api', userRouter)
+app.use('/api/users', usersRouter)
+app.use('/api/classrooms', classroomsRouter)
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {

@@ -8,6 +8,7 @@ export default {
         type: Sequelize.INTEGER
       },
       name: {
+        allowNull: false,
         type: Sequelize.STRING
       },
       createdAt: {
