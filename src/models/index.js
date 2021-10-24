@@ -14,7 +14,7 @@ if (config.use_env_variable) {
 } else {
   sequelize = new Sequelize(config.database, config.username, config.password, {
     ...config,
-    logging: false
+    logging: false,
   })
 }
 
@@ -37,11 +37,11 @@ db.Sequelize = Sequelize
 
 db.User.belongsToMany(db.Classroom, {
   through: db.ClassroomUser,
-  foreignKey: 'userId'
+  foreignKey: 'userId',
 })
 db.Classroom.belongsToMany(db.User, {
   through: db.ClassroomUser,
-  foreignKey: 'classroomId'
+  foreignKey: 'classroomId',
 })
 
 export default db

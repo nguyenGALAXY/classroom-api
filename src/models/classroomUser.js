@@ -4,16 +4,16 @@ export default (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       references: {
         model: 'Classroom',
-        key: 'id'
-      }
+        key: 'id',
+      },
     },
     userId: {
       type: DataTypes.INTEGER,
       references: {
         model: 'User',
-        key: 'id'
-      }
-    }
+        key: 'id',
+      },
+    },
   }
 
   const classroomUserModel = sequelize.define('ClassroomUser', schema)

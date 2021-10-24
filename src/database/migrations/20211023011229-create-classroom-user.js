@@ -5,7 +5,7 @@ export default {
         allowNull: false,
         autoIncrement: true,
         primaryKey: true,
-        type: Sequelize.INTEGER
+        type: Sequelize.INTEGER,
       },
       userId: {
         primaryKey: true,
@@ -14,8 +14,8 @@ export default {
         allowNull: false,
         references: {
           model: 'Users',
-          key: 'id'
-        }
+          key: 'id',
+        },
       },
       classroomId: {
         primaryKey: true,
@@ -24,20 +24,20 @@ export default {
         allowNull: false,
         references: {
           model: 'Classrooms',
-          key: 'id'
-        }
+          key: 'id',
+        },
       },
       createdAt: {
         allowNull: false,
-        type: Sequelize.DATE
+        type: Sequelize.DATE,
       },
       updatedAt: {
         allowNull: false,
-        type: Sequelize.DATE
-      }
+        type: Sequelize.DATE,
+      },
     })
   },
   down: async (queryInterface, Sequelize) => {
     await queryInterface.dropTable('ClassroomUsers')
-  }
+  },
 }
