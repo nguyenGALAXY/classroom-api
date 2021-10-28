@@ -1,3 +1,5 @@
+import { hashPassword, checkPassword } from '../utils/crypto'
+
 export default (sequelize, DataTypes) => {
   const schema = {
     username: {
@@ -36,6 +38,27 @@ export default (sequelize, DataTypes) => {
   }
 
   const userModel = sequelize.define('User', schema)
+
+  userModel.authenticate = async (username, plainPassword) => {
+    const user = await userModel.findOne({ where: { username }, raw: true })
+
+    if (!user) {
+      return null
+    }
+    const isPasswordCorrect = await checkPassword(plainPassword, user.password)
+    if (isPasswordCorrect) {
+      return user
+    } else {
+      return null
+    }
+  }
+
+  userModel.prototype.toJSON = function () {
+    var values = Object.assign({}, this.get())
+
+    delete values.password
+    return values
+  }
 
   return userModel
 }

@@ -1,9 +1,11 @@
 export default (sequelize, DataTypes) => {
   const schema = {
     name: {
+      allowNull: false,
       type: DataTypes.STRING,
     },
     ownerId: {
+      allowNull: false,
       type: DataTypes.INTEGER,
       references: {
         model: 'User',

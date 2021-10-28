@@ -35,13 +35,13 @@ fs.readdirSync(__dirname)
 db.sequelize = sequelize
 db.Sequelize = Sequelize
 
-db.User.belongsToMany(db.Classroom, {
-  through: db.ClassroomUser,
-  foreignKey: 'userId',
-})
-db.Classroom.belongsToMany(db.User, {
-  through: db.ClassroomUser,
-  foreignKey: 'classroomId',
-})
+db.User.hasMany(db.Classroom, { foreignKey: 'ownerId' })
+db.User.hasMany(db.ClassroomUser, { foreignKey: 'userId' })
+
+db.Classroom.belongsTo(db.User, { foreignKey: 'ownerId', as: 'Owner' })
+db.Classroom.hasMany(db.ClassroomUser, { foreignKey: 'classroomId' })
+
+db.ClassroomUser.belongsTo(db.User, { foreignKey: 'userId' })
+db.ClassroomUser.belongsTo(db.Classroom, { foreignKey: 'classroomId' })
 
 export default db
