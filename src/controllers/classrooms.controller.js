@@ -3,7 +3,6 @@ import BaseCtrl from './base'
 import { controller, get, post } from 'route-decorators'
 import httpStatusCodes from 'http-status-codes'
 import { auth } from '../middleware'
-import passport from 'passport'
 
 /**
  * @swagger
@@ -45,8 +44,9 @@ class ClassroomCtrl extends BaseCtrl {
    *               items:
    *                 $ref: "#/components/schemas/Classroom"
    */
-  @get('/')
+  @get('/', auth())
   async getClassrooms(req, res) {
+    const userId = req.user.id
     const classrooms = await db.Classroom.findAll({
       include: [
         {
@@ -55,9 +55,11 @@ class ClassroomCtrl extends BaseCtrl {
           attributes: {
             exclude: ['password'],
           },
+          where: { id: userId },
         },
         {
           model: db.ClassroomUser,
+          where: { userId },
           include: [
             {
               model: db.User,
@@ -101,11 +103,13 @@ class ClassroomCtrl extends BaseCtrl {
    */
   @post('/', auth())
   async createClassroom(req, res) {
+    const userId = req.user.id
     const { name } = req.body
     if (!name) {
       res.status(httpStatusCodes.BAD_REQUEST).send('Name is required')
     }
     const classroom = await db.Classroom.create({ name, ownerId: req.user.id })
+    await db.ClassroomUser.create({ userId, classroomId: classroom.id })
     res.status(httpStatusCodes.OK).send(classroom)
   }
 }

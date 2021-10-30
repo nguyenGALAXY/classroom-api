@@ -23,7 +23,7 @@ const options = {
     },
     servers: [
       {
-        url: `${process.env.URL}:${process.env.PORT}`,
+        url: `${process.env.API_URL}`,
       },
     ],
   },
