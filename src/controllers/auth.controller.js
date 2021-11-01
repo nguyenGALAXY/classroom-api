@@ -12,15 +12,19 @@ class AuthCtrl extends BaseCtrl {
   async register(req, res) {
     const { username, email, password, firstName, lastName } = req.body
     const hash = await hashPassword(password)
-    const newUser = await db.User.create({
-      username,
-      email,
-      password: hash,
-      firstName,
-      lastName,
-    })
-    newUser.password = undefined
-    res.status(httpStatusCodes.CREATED).send(newUser)
+    try {
+      const newUser = await db.User.create({
+        username,
+        email,
+        password: hash,
+        firstName,
+        lastName,
+      })
+      newUser.password = undefined
+      res.status(httpStatusCodes.CREATED).send(newUser)
+    } catch (err) {
+      res.status(httpStatusCodes.BAD_REQUEST).send(err.message)
+    }
   }
 
   @post('/login')

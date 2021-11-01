@@ -27,6 +27,10 @@ const options = {
       },
     ],
   },
+  /* This 2 lines disable Try it out button, because our API require Authenticate */
+  tryItOutEnabled: false,
+  supportedSubmitMethods: [],
+  /* *** */
   apis: ['src/controllers/*.js'],
 }
 
