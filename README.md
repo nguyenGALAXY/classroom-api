@@ -6,10 +6,27 @@
 npm install -g win-node-env
 ```
 
+#### Setup local database info in file .env
+
+example: \
+DB_USERNAME=admin \
+DB_PASSWORD=admin \
+DB_NAME=classroom \
+DB_HOST=127.0.0.1 \
+
 #### Run below command to migrate database
 
 ```
 yarn sequelize db:migrate
+```
+
+## Run repo
+
+#### Start repo in development
+
+```
+yarn install
+yarn dev
 ```
 
 ## Script use in development
