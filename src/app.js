@@ -11,7 +11,6 @@ import * as _jwtStrategy from './auth/jwt.strategy'
 import cors from 'cors'
 
 require('dotenv').config()
-// helooo
 const options = {
   definition: {
     openapi: '3.0.0',
