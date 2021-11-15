@@ -5,22 +5,46 @@ import { hashPassword } from '../utils/crypto'
 import db from '../models/index'
 import passport from 'passport'
 import jwt from 'jsonwebtoken'
-import nodemailer from 'nodemailer'
+import {
+  validateEmail,
+  sendEmail,
+  checkPassword,
+} from '../services/authService'
 import { google } from 'googleapis'
 require('dotenv').config()
-
+const { OAuth2 } = google.auth
+const client = new OAuth2(process.env.LOGIN_GOOGLE_CLIENT_ID)
 @controller('/api/auth')
 class AuthCtrl extends BaseCtrl {
   @post('/register')
   async register(req, res) {
     const { username, email, password, firstName, lastName } = req.body
     const hash = await hashPassword(password)
+    //Validate and check acc
     if (!validateEmail(email)) {
-      return res.status(400).json({ msg: 'Invalid email' })
+      return res.status(400).json({ success: false, message: 'Invalid email' })
     }
-    const checkUser = await db.User.findOne({ where: { username: username } })
-    if (checkUser) {
-      return res.status(400).json({ msg: 'Username already exists. ' })
+    const checkUsername = await db.User.findOne({
+      where: { username: username },
+    })
+    const checkEmail = await db.User.findOne({
+      where: { email: String(email).toLowerCase() },
+    })
+    if (checkUsername) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Username already exists. ' })
+    }
+    if (checkEmail) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'Email already exists. ' })
+    }
+    if (checkPassword(password)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must at least 6 characters.',
+      })
     }
     try {
       const newUser = {
@@ -35,11 +59,12 @@ class AuthCtrl extends BaseCtrl {
         process.env.ACTIVATION_TOKEN_SECRET,
         { expiresIn: '5m' }
       )
-      const url = `${process.env.API_URL}/api/auth/activateEmail/${activation_token}`
+      const url = `${process.env.FRONTEND_URL}/activateEmail/${activation_token}`
       sendEmail(email, url)
 
       res.status(httpStatusCodes.CREATED).json({
-        msg: 'Register Success! Please activate your email to start.',
+        success: true,
+        message: 'Register Success! Please activate your email to start.',
       })
       //res.status(httpStatusCodes.CREATED).send(newUser)
     } catch (err) {
@@ -50,12 +75,18 @@ class AuthCtrl extends BaseCtrl {
   async activateEmail(req, res) {
     try {
       const { activation_token } = req.body
-      console.log(activation_token)
+
       const user = jwt.verify(
         activation_token,
         process.env.ACTIVATION_TOKEN_SECRET
       )
       const { username, password, email, firstName, lastName } = user.newUser
+      const checkEmail = await db.User.findOne({ where: { email: email } })
+      if (checkEmail) {
+        return res
+          .status(400)
+          .json({ success: true, message: 'Email already activated. ' })
+      }
       const newUser = await db.User.create({
         username,
         email,
@@ -63,9 +94,11 @@ class AuthCtrl extends BaseCtrl {
         firstName,
         lastName,
       })
-      res.status(httpStatusCodes.CREATED).send(newUser)
+      res
+        .status(httpStatusCodes.CREATED)
+        .send({ success: true, message: 'Comfirm email sucess' })
     } catch (err) {
-      return res.status(500).json({ msg: err.message })
+      res.status(500).json({ success: false, message: err.message })
     }
   }
   @post('/login')
@@ -78,7 +111,10 @@ class AuthCtrl extends BaseCtrl {
           return next(err)
         }
         if (!user) {
-          return res.send({ success: false, message: 'authentication failed' })
+          return res.send({
+            success: false,
+            message: 'Incorrect username or password',
+          })
         }
         req.logIn(user, { session: false }, (loginErr) => {
           if (loginErr) {
@@ -95,66 +131,51 @@ class AuthCtrl extends BaseCtrl {
       }
     )(req, res, next)
   }
-}
+  @post('/google_login')
+  async google_login(req, res) {
+    try {
+      const { tokenId } = req.body
 
-//check valid email function
-function validateEmail(email) {
-  const re =
-    /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
-  return re.test(String(email).toLowerCase())
-}
-//handle send mail
-const { OAuth2 } = google.auth
-const OAUTH_PLAYGROUND = 'https://developers.google.com/oauthplayground'
-const oauth2Client = new OAuth2(
-  process.env.MAILING_SERVICE_CLIENT_ID,
-  process.env.MAILING_SERVICE_CLIENT_SECRET,
-  process.env.MAILING_SERVICE_CLIENT_REFRESH_TOKEN,
-  process.env.EMAIL_SENDER,
-  OAUTH_PLAYGROUND
-)
-
-const sendEmail = (to, url) => {
-  oauth2Client.setCredentials({
-    refresh_token: process.env.MAILING_SERVICE_CLIENT_REFRESH_TOKEN,
-  })
-  const accessToken = oauth2Client.getAccessToken()
-  const smtpTransport = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      type: 'OAuth2',
-      user: process.env.EMAIL_SENDER,
-      clientId: process.env.MAILING_SERVICE_CLIENT_ID,
-      clientSecret: process.env.MAILING_SERVICE_CLIENT_SECRET,
-      refreshToken: process.env.MAILING_SERVICE_CLIENT_REFRESH_TOKEN,
-      accessToken,
-    },
-  })
-  const mailOption = {
-    from: process.env.EMAIL_SENDER,
-    to: to,
-    subject: 'Classroom Project',
-    html: `
-    <div style="max-width: 700px; margin:auto; border: 10px solid #ddd; padding: 50px 20px; font-size: 110%;">
-    <h2 style="text-align: center; text-transform: uppercase;color: teal;">Welcome to Classroom</h2>
-    <p>Congratulations! You're almost done.
-        Just click the button below to validate your email address.
-    </p>
-    
-    <a href=${url} style="background: crimson; text-decoration: none; color: white; padding: 10px 20px; margin: 10px 0; display: inline-block;">Verify your email</a>
-
-    <p>If the button doesn't work for any reason, you can also click on the link below:</p>
-
-    <div>${url}</div>
-    </div>
-`,
-  }
-  smtpTransport.sendMail(mailOption, (err, infor) => {
-    if (err) {
-      console.log(err)
-    } else {
-      console.log('Email sent: ' + infor.response)
+      const account = await client.verifyIdToken({
+        idToken: tokenId,
+        audience: process.env.LOGIN_GOOGLE_CLIENT_ID,
+      })
+      const { email, name, family_name, given_name } = account.payload
+      const password = email + process.env.SECRET
+      const hash = await hashPassword(password)
+      const user = await db.User.authenticate(email, password)
+      if (user) {
+        console.log(user)
+        user.password = undefined
+        const token = jwt.sign({ user }, process.env.SECRET || 'meomeo')
+        res.send({ success: true, message: 'Login success', token })
+      } else {
+        //check email exist
+        const checkEmail = await db.User.findOne({ where: { email: email } })
+        if (checkEmail) {
+          return res
+            .status(400)
+            .json({ success: false, message: 'Email already exists. ' })
+        }
+        const newUser = await db.User.create({
+          username: email,
+          email,
+          password: hash,
+          firstName: given_name,
+          lastName: family_name,
+        })
+        const user = await db.User.authenticate(email, password)
+        user.password = undefined
+        const token = jwt.sign({ user }, process.env.SECRET || 'meomeo')
+        return res.send({
+          success: true,
+          message: 'authentication succeeded',
+          token,
+        })
+      }
+    } catch (err) {
+      return res.status(500).json({ success: false, message: err.message })
     }
-  })
+  }
 }
 export default AuthCtrl

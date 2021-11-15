@@ -8,6 +8,7 @@ import passport from 'passport'
 import routes from './routes'
 import * as _localStrategy from './auth/local.strategy'
 import * as _jwtStrategy from './auth/jwt.strategy'
+import * as _googleStrategy from './auth/google.strategy'
 import cors from 'cors'
 
 require('dotenv').config()

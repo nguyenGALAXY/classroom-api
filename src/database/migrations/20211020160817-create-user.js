@@ -19,6 +19,7 @@ export default {
         type: Sequelize.STRING,
       },
       email: {
+        unique: true,
         allowNull: false,
         type: Sequelize.STRING,
       },
