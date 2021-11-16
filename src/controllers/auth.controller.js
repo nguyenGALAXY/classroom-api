@@ -27,18 +27,27 @@ class AuthCtrl extends BaseCtrl {
     const checkUsername = await db.User.findOne({
       where: { username: username },
     })
-    const checkEmail = await db.User.findOne({
-      where: { email: String(email).toLowerCase() },
+    const checkEmailActive = await db.User.findOne({
+      where: { email: String(email).toLowerCase(), status: 'active' },
+    })
+    const checkEmailPending = await db.User.findOne({
+      where: { email: String(email).toLowerCase(), status: 'pending' },
     })
     if (checkUsername) {
       return res
         .status(400)
         .json({ success: false, message: 'Username already exists. ' })
     }
-    if (checkEmail) {
+    if (checkEmailActive) {
       return res
         .status(400)
         .json({ success: false, message: 'Email already exists. ' })
+    }
+    if (checkEmailPending) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email was not active, please check your email to activate. ',
+      })
     }
     if (checkPassword(password)) {
       return res.status(400).json({
@@ -47,13 +56,15 @@ class AuthCtrl extends BaseCtrl {
       })
     }
     try {
-      const newUser = {
+      const newUser = await db.User.create({
         username,
         email,
         password: hash,
         firstName,
         lastName,
-      }
+        status: 'pending',
+      })
+      newUser.password = undefined
       const activation_token = jwt.sign(
         { newUser },
         process.env.ACTIVATION_TOKEN_SECRET,
@@ -64,7 +75,7 @@ class AuthCtrl extends BaseCtrl {
 
       res.status(httpStatusCodes.CREATED).json({
         success: true,
-        message: 'Register Success! Please activate your email to start.',
+        message: 'Register Success! Please check your email to activate.',
       })
       //res.status(httpStatusCodes.CREATED).send(newUser)
     } catch (err) {
@@ -80,23 +91,22 @@ class AuthCtrl extends BaseCtrl {
         activation_token,
         process.env.ACTIVATION_TOKEN_SECRET
       )
-      const { username, password, email, firstName, lastName } = user.newUser
+      const { email, status } = user.newUser
       const checkEmail = await db.User.findOne({ where: { email: email } })
       if (checkEmail) {
-        return res
-          .status(400)
-          .json({ success: true, message: 'Email already activated. ' })
+        if (status === 'active') {
+          return res
+            .status(400)
+            .json({ success: true, message: 'Email already activated. ' })
+        }
+        const activeUser = await db.User.update(
+          { status: 'active' },
+          { where: { email: email } }
+        )
+        res
+          .status(httpStatusCodes.CREATED)
+          .send({ success: true, message: 'Comfirm email sucess' })
       }
-      const newUser = await db.User.create({
-        username,
-        email,
-        password,
-        firstName,
-        lastName,
-      })
-      res
-        .status(httpStatusCodes.CREATED)
-        .send({ success: true, message: 'Comfirm email sucess' })
     } catch (err) {
       res.status(500).json({ success: false, message: err.message })
     }
@@ -145,13 +155,14 @@ class AuthCtrl extends BaseCtrl {
       const hash = await hashPassword(password)
       const user = await db.User.authenticate(email, password)
       if (user) {
-        console.log(user)
         user.password = undefined
         const token = jwt.sign({ user }, process.env.SECRET || 'meomeo')
         res.send({ success: true, message: 'Login success', token })
       } else {
         //check email exist
-        const checkEmail = await db.User.findOne({ where: { email: email } })
+        const checkEmail = await db.User.findOne({
+          where: { email: String(email).toLowerCase() },
+        })
         if (checkEmail) {
           return res
             .status(400)
@@ -163,6 +174,7 @@ class AuthCtrl extends BaseCtrl {
           password: hash,
           firstName: given_name,
           lastName: family_name,
+          status: 'active',
         })
         const user = await db.User.authenticate(email, password)
         user.password = undefined

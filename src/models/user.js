@@ -41,13 +41,14 @@ export default (sequelize, DataTypes) => {
 
   userModel.authenticate = async (username, plainPassword) => {
     const user = await userModel.findOne({ where: { username }, raw: true })
-
     if (!user) {
       return null
     }
     const isPasswordCorrect = await checkPassword(plainPassword, user.password)
     if (isPasswordCorrect) {
-      return user
+      if (user.status === 'active') {
+        return user
+      }
     } else {
       return null
     }
