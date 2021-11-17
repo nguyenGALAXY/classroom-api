@@ -11,6 +11,7 @@ import {
   checkPassword,
 } from '../services/authService'
 import { google } from 'googleapis'
+import * as accountStatus from '../utils/constants'
 require('dotenv').config()
 const { OAuth2 } = google.auth
 const client = new OAuth2(process.env.LOGIN_GOOGLE_CLIENT_ID)
@@ -28,10 +29,16 @@ class AuthCtrl extends BaseCtrl {
       where: { username: username },
     })
     const checkEmailActive = await db.User.findOne({
-      where: { email: String(email).toLowerCase(), status: 'active' },
+      where: {
+        email: String(email).toLowerCase(),
+        status: accountStatus.ACCOUNT_ACTIVE,
+      },
     })
     const checkEmailPending = await db.User.findOne({
-      where: { email: String(email).toLowerCase(), status: 'pending' },
+      where: {
+        email: String(email).toLowerCase(),
+        status: accountStatus.ACCOUNT_PENDING,
+      },
     })
     if (checkUsername) {
       return res
@@ -62,7 +69,7 @@ class AuthCtrl extends BaseCtrl {
         password: hash,
         firstName,
         lastName,
-        status: 'pending',
+        status: accountStatus.ACCOUNT_PENDING,
       })
       newUser.password = undefined
       const activation_token = jwt.sign(
@@ -77,12 +84,11 @@ class AuthCtrl extends BaseCtrl {
         success: true,
         message: 'Register Success! Please check your email to activate.',
       })
-      //res.status(httpStatusCodes.CREATED).send(newUser)
     } catch (err) {
       res.status(httpStatusCodes.BAD_REQUEST).send(err.message)
     }
   }
-  @post('/activateEmail')
+  @post('/activate-email')
   async activateEmail(req, res) {
     try {
       const { activation_token } = req.body
@@ -141,8 +147,8 @@ class AuthCtrl extends BaseCtrl {
       }
     )(req, res, next)
   }
-  @post('/google_login')
-  async google_login(req, res) {
+  @post('/google-login')
+  async googleLogin(req, res) {
     try {
       const { tokenId } = req.body
 
@@ -154,6 +160,7 @@ class AuthCtrl extends BaseCtrl {
       const password = email + process.env.SECRET
       const hash = await hashPassword(password)
       const user = await db.User.authenticate(email, password)
+      console.log(password)
       if (user) {
         user.password = undefined
         const token = jwt.sign({ user }, process.env.SECRET || 'meomeo')
@@ -174,7 +181,7 @@ class AuthCtrl extends BaseCtrl {
           password: hash,
           firstName: given_name,
           lastName: family_name,
-          status: 'active',
+          status: accountStatus.ACCOUNT_ACTIVE,
         })
         const user = await db.User.authenticate(email, password)
         user.password = undefined

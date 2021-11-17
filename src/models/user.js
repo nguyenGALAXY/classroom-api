@@ -1,5 +1,5 @@
 import { hashPassword, checkPassword } from '../utils/crypto'
-
+import * as constants from '../utils/constants'
 export default (sequelize, DataTypes) => {
   const schema = {
     username: {
@@ -46,7 +46,7 @@ export default (sequelize, DataTypes) => {
     }
     const isPasswordCorrect = await checkPassword(plainPassword, user.password)
     if (isPasswordCorrect) {
-      if (user.status === 'active') {
+      if (user.status === constants.ACCOUNT_ACTIVE) {
         return user
       }
     } else {
