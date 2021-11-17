@@ -160,7 +160,6 @@ class AuthCtrl extends BaseCtrl {
       const password = email + process.env.SECRET
       const hash = await hashPassword(password)
       const user = await db.User.authenticate(email, password)
-      console.log(password)
       if (user) {
         user.password = undefined
         const token = jwt.sign({ user }, process.env.SECRET || 'meomeo')
