@@ -60,9 +60,9 @@ export const sendEmail = (to, url) => {
   }
   smtpTransport.sendMail(mailOption, (err, infor) => {
     if (err) {
-      console.log(err)
+      res.send(err)
     } else {
-      console.log('Email sent: ' + infor.response)
+      res.send('Email sent: ' + infor.response)
     }
   })
 }

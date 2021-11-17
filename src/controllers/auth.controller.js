@@ -100,13 +100,13 @@ class AuthCtrl extends BaseCtrl {
       const { email, status } = user.newUser
       const checkEmail = await db.User.findOne({ where: { email: email } })
       if (checkEmail) {
-        if (status === 'active') {
+        if (status === accountStatus.ACCOUNT_ACTIVE) {
           return res
             .status(400)
             .json({ success: true, message: 'Email already activated. ' })
         }
         const activeUser = await db.User.update(
-          { status: 'active' },
+          { status: accountStatus.ACCOUNT_ACTIVE },
           { where: { email: email } }
         )
         res
