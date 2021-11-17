@@ -4,6 +4,14 @@ export default (sequelize, DataTypes) => {
       allowNull: false,
       type: DataTypes.STRING,
     },
+    section: {
+      allowNull: false,
+      type: DataTypes.STRING,
+    },
+    subject: {
+      allowNull: false,
+      type: DataTypes.STRING,
+    },
     ownerId: {
       allowNull: false,
       type: DataTypes.INTEGER,

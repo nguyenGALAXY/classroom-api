@@ -104,12 +104,23 @@ class ClassroomCtrl extends BaseCtrl {
   @post('/', auth())
   async createClassroom(req, res) {
     const userId = req.user.id
-    const { name } = req.body
+    const { name, section, subject } = req.body
     if (!name) {
       res.status(httpStatusCodes.BAD_REQUEST).send('Name is required')
     }
-    const classroom = await db.Classroom.create({ name, ownerId: req.user.id })
-    await db.ClassroomUser.create({ userId, classroomId: classroom.id })
+    let classroom
+    try {
+      classroom = await db.Classroom.create({
+        name: name,
+        section: section,
+        subject: subject,
+        ownerId: req.user.id,
+      })
+      await db.ClassroomUser.create({ userId, classroomId: classroom.id })
+    } catch (error) {
+      console.log(error)
+    }
+
     res.status(httpStatusCodes.OK).send(classroom)
   }
 }
