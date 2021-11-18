@@ -101,9 +101,10 @@ class AuthCtrl extends BaseCtrl {
       const checkEmail = await db.User.findOne({ where: { email: email } })
       if (checkEmail) {
         if (status === accountStatus.ACCOUNT_ACTIVE) {
-          return res
-            .status(400)
-            .json({ success: true, message: 'Email already activated. ' })
+          return res.json({
+            success: true,
+            message: 'Email already activated. ',
+          })
         }
         const activeUser = await db.User.update(
           { status: accountStatus.ACCOUNT_ACTIVE },
@@ -156,24 +157,42 @@ class AuthCtrl extends BaseCtrl {
         idToken: tokenId,
         audience: process.env.LOGIN_GOOGLE_CLIENT_ID,
       })
-      const { email, name, family_name, given_name } = account.payload
-      const password = email + process.env.SECRET
-      const hash = await hashPassword(password)
-      const user = await db.User.authenticate(email, password)
+      const { email } = account.payload
+      const user = await db.User.findOne({
+        where: { email: String(email).toLowerCase() },
+      })
       if (user) {
         user.password = undefined
         const token = jwt.sign({ user }, process.env.SECRET || 'meomeo')
         res.send({ success: true, message: 'Login success', token })
       } else {
-        //check email exist
-        const checkEmail = await db.User.findOne({
-          where: { email: String(email).toLowerCase() },
+        return res.status(httpStatusCodes.BAD_REQUEST).json({
+          success: false,
+          message: 'Email invalid',
         })
-        if (checkEmail) {
-          return res
-            .status(400)
-            .json({ success: false, message: 'Email already exists. ' })
-        }
+      }
+    } catch (err) {
+      return res.status(500).json({ success: false, message: err.message })
+    }
+  }
+  @post('/google-signup')
+  async googleSignUp(req, res) {
+    try {
+      const { tokenId } = req.body
+
+      const account = await client.verifyIdToken({
+        idToken: tokenId,
+        audience: process.env.LOGIN_GOOGLE_CLIENT_ID,
+      })
+      const { email, name, family_name, given_name } = account.payload
+      const checkUser = await db.User.findOne({
+        where: { email: String(email).toLowerCase() },
+      })
+      if (checkUser) {
+        res.status(400).json({ success: false, message: 'Email already exist' })
+      } else {
+        const password = email + process.env.SECRET
+        const hash = await hashPassword(password)
         const newUser = await db.User.create({
           username: email,
           email,
@@ -182,13 +201,16 @@ class AuthCtrl extends BaseCtrl {
           lastName: family_name,
           status: accountStatus.ACCOUNT_ACTIVE,
         })
-        const user = await db.User.authenticate(email, password)
-        user.password = undefined
-        const token = jwt.sign({ user }, process.env.SECRET || 'meomeo')
-        return res.send({
+        newUser.password = undefined
+        const activation_token = jwt.sign(
+          { newUser },
+          process.env.ACTIVATION_TOKEN_SECRET,
+          { expiresIn: '5m' }
+        )
+        res.status(httpStatusCodes.CREATED).send({
           success: true,
           message: 'authentication succeeded',
-          token,
+          activation_token,
         })
       }
     } catch (err) {
