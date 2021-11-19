@@ -1,2 +1,6 @@
 export const ACCOUNT_PENDING = 'PENDING'
 export const ACCOUNT_ACTIVE = 'ACTIVE'
+export const CLASSROOM_ROLE = {
+  STUDENT: 'STUDENT',
+  TEACHER: 'TEACHER',
+}

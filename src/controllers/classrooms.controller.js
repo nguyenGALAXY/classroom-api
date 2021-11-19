@@ -3,6 +3,8 @@ import BaseCtrl from './base'
 import { controller, get, post } from 'route-decorators'
 import httpStatusCodes from 'http-status-codes'
 import { auth } from '../middleware'
+import { CLASSROOM_ROLE } from '../utils/constants'
+import debug from '../utils/debug'
 
 /**
  * @swagger
@@ -116,12 +118,85 @@ class ClassroomCtrl extends BaseCtrl {
         subject: subject,
         ownerId: req.user.id,
       })
-      await db.ClassroomUser.create({ userId, classroomId: classroom.id })
+      await db.ClassroomUser.create({
+        userId,
+        classroomId: classroom.id,
+        role: CLASSROOM_ROLE.TEACHER,
+      })
     } catch (error) {
-      console.log(error)
+      debug.log('classroom-ctrl', error)
     }
 
     res.status(httpStatusCodes.OK).send(classroom)
+  }
+
+  @post('/join', auth())
+  async joinClassroom(req, res) {
+    const userId = req.user.id
+    const { classroomId } = req.body
+
+    let classroomUser
+
+    // check input
+    const existClassroom = await db.Classroom.findByPk(classroomId)
+
+    if (!existClassroom) {
+      return res.status(httpStatusCodes.BAD_REQUEST).json({ message: 'Classroom not found' })
+    }
+
+    const existClassroomUser = await db.ClassroomUser.findOne({
+      where: {
+        classroomId,
+        userId,
+      },
+    })
+
+    if (existClassroomUser) {
+      return res.status(httpStatusCodes.OK).send({ message: 'Already join classroom', classroomId })
+    }
+
+    try {
+      classroomUser = await db.ClassroomUser.create({
+        userId,
+        classroomId,
+        role: CLASSROOM_ROLE.STUDENT,
+      })
+    } catch (error) {
+      debug.log('classroom-ctrl', error)
+    }
+    res.status(httpStatusCodes.OK).send(classroomUser)
+  }
+
+  @get('/:id/users', auth())
+  async getClassroomUsers(req, res) {
+    const userId = req.user.id
+
+    const { id: classroomId } = req.params
+
+    console.log(classroomId, userId)
+
+    const isUserInClassroom = await db.ClassroomUser.count({
+      where: {
+        classroomId,
+        userId,
+      },
+    })
+
+    if (!isUserInClassroom) {
+      return res
+        .status(httpStatusCodes.BAD_REQUEST)
+        .send({ message: 'User do not belong to classroom' })
+    }
+
+    const users = await db.ClassroomUser.findAll({
+      where: { classroomId },
+      raw: true,
+      include: {
+        model: db.User,
+        exclude: ['password'],
+      },
+    })
+    res.status(httpStatusCodes.OK).send(users)
   }
 }
 

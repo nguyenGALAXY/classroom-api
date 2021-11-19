@@ -5,11 +5,7 @@ import { hashPassword } from '../utils/crypto'
 import db from '../models/index'
 import passport from 'passport'
 import jwt from 'jsonwebtoken'
-import {
-  validateEmail,
-  sendEmail,
-  checkPassword,
-} from '../services/authService'
+import { validateEmail, sendEmail, checkPassword } from '../services/authService'
 import { google } from 'googleapis'
 import * as accountStatus from '../utils/constants'
 require('dotenv').config()
@@ -41,14 +37,10 @@ class AuthCtrl extends BaseCtrl {
       },
     })
     if (checkUsername) {
-      return res
-        .status(400)
-        .json({ success: false, message: 'Username already exists. ' })
+      return res.status(400).json({ success: false, message: 'Username already exists. ' })
     }
     if (checkEmailActive) {
-      return res
-        .status(400)
-        .json({ success: false, message: 'Email already exists. ' })
+      return res.status(400).json({ success: false, message: 'Email already exists. ' })
     }
     if (checkEmailPending) {
       return res.status(400).json({
@@ -72,11 +64,9 @@ class AuthCtrl extends BaseCtrl {
         status: accountStatus.ACCOUNT_PENDING,
       })
       newUser.password = undefined
-      const activation_token = jwt.sign(
-        { newUser },
-        process.env.ACTIVATION_TOKEN_SECRET,
-        { expiresIn: '5m' }
-      )
+      const activation_token = jwt.sign({ newUser }, process.env.ACTIVATION_TOKEN_SECRET, {
+        expiresIn: '5m',
+      })
       const url = `${process.env.FRONTEND_URL}/activateEmail/${activation_token}`
       sendEmail(email, url)
 
@@ -93,10 +83,7 @@ class AuthCtrl extends BaseCtrl {
     try {
       const { activation_token } = req.body
 
-      const user = jwt.verify(
-        activation_token,
-        process.env.ACTIVATION_TOKEN_SECRET
-      )
+      const user = jwt.verify(activation_token, process.env.ACTIVATION_TOKEN_SECRET)
       const { email, status } = user.newUser
       const checkEmail = await db.User.findOne({ where: { email: email } })
       if (checkEmail) {
@@ -110,9 +97,7 @@ class AuthCtrl extends BaseCtrl {
           { status: accountStatus.ACCOUNT_ACTIVE },
           { where: { email: email } }
         )
-        res
-          .status(httpStatusCodes.CREATED)
-          .send({ success: true, message: 'Comfirm email sucess' })
+        res.status(httpStatusCodes.CREATED).send({ success: true, message: 'Comfirm email sucess' })
       }
     } catch (err) {
       res.status(500).json({ success: false, message: err.message })
@@ -120,33 +105,29 @@ class AuthCtrl extends BaseCtrl {
   }
   @post('/login')
   async login(req, res, next) {
-    await passport.authenticate(
-      'local',
-      { session: false },
-      function (err, user, info) {
-        if (err) {
-          return next(err)
-        }
-        if (!user) {
-          return res.send({
-            success: false,
-            message: 'Incorrect username or password',
-          })
-        }
-        req.logIn(user, { session: false }, (loginErr) => {
-          if (loginErr) {
-            return next(loginErr)
-          }
-          user.password = undefined
-          const token = jwt.sign({ user }, process.env.SECRET || 'meomeo')
-          return res.send({
-            success: true,
-            message: 'authentication succeeded',
-            token,
-          })
+    await passport.authenticate('local', { session: false }, function (err, user, info) {
+      if (err) {
+        return next(err)
+      }
+      if (!user) {
+        return res.send({
+          success: false,
+          message: 'Incorrect username or password',
         })
       }
-    )(req, res, next)
+      req.logIn(user, { session: false }, (loginErr) => {
+        if (loginErr) {
+          return next(loginErr)
+        }
+        user.password = undefined
+        const token = jwt.sign({ user }, process.env.SECRET || 'meomeo')
+        return res.send({
+          success: true,
+          message: 'authentication succeeded',
+          token,
+        })
+      })
+    })(req, res, next)
   }
   @post('/google-login')
   async googleLogin(req, res) {
@@ -202,11 +183,9 @@ class AuthCtrl extends BaseCtrl {
           status: accountStatus.ACCOUNT_ACTIVE,
         })
         newUser.password = undefined
-        const activation_token = jwt.sign(
-          { newUser },
-          process.env.ACTIVATION_TOKEN_SECRET,
-          { expiresIn: '5m' }
-        )
+        const activation_token = jwt.sign({ newUser }, process.env.ACTIVATION_TOKEN_SECRET, {
+          expiresIn: '5m',
+        })
         res.status(httpStatusCodes.CREATED).send({
           success: true,
           message: 'authentication succeeded',

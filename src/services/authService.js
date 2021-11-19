@@ -9,7 +9,7 @@ export function validateEmail(email) {
   return re.test(String(email).toLowerCase())
 }
 //check password length at least 6 characters
-export function checkPassword(password){
+export function checkPassword(password) {
   if (password.length < 6) return true
   return false
 }

@@ -14,6 +14,13 @@ export default (sequelize, DataTypes) => {
         key: 'id',
       },
     },
+    role: {
+      type: DataTypes.STRING,
+    },
+    active: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
+    },
   }
 
   const classroomUserModel = sequelize.define('ClassroomUser', schema)
