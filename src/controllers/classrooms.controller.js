@@ -76,7 +76,19 @@ class ClassroomCtrl extends BaseCtrl {
     })
     res.status(httpStatusCodes.OK).send(classrooms)
   }
-
+  @get('/:id', auth())
+  async getDetailClassroom(req, res) {
+    let classroom
+    let { id: classroomId } = req.params
+    try {
+      classroom = await db.Classroom.findOne({
+        where: { id: classroomId },
+      })
+    } catch (error) {
+      console.log(error)
+    }
+    res.status(httpStatusCodes.OK).send(classroom)
+  }
   /**
    * @swagger
    * /api/classrooms:
