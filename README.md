@@ -37,6 +37,12 @@ yarn dev
 yarn sequelize migration:generate --name {file name}
 ```
 
+#### Generate seeder file
+
+```
+yarn sequelize seed:generate --name {file name}
+```
+
 #### Database script
 
 ```

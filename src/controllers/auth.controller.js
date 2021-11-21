@@ -5,12 +5,15 @@ import { hashPassword } from '../utils/crypto'
 import db from '../models/index'
 import passport from 'passport'
 import jwt from 'jsonwebtoken'
-import { validateEmail, sendEmail, checkPassword } from '../services/authService'
+import { validateEmail, checkPassword } from '../services/authService'
 import { google } from 'googleapis'
-import * as accountStatus from '../utils/constants'
+import { sendEmail, generateVerifyEmailTemplate } from '../utils/mail'
+import { ACCOUNT_STATUS } from '../utils/constants'
+
 require('dotenv').config()
 const { OAuth2 } = google.auth
 const client = new OAuth2(process.env.LOGIN_GOOGLE_CLIENT_ID)
+
 @controller('/api/auth')
 class AuthCtrl extends BaseCtrl {
   @post('/register')
@@ -27,13 +30,13 @@ class AuthCtrl extends BaseCtrl {
     const checkEmailActive = await db.User.findOne({
       where: {
         email: String(email).toLowerCase(),
-        status: accountStatus.ACCOUNT_ACTIVE,
+        status: ACCOUNT_STATUS.ACTIVE,
       },
     })
     const checkEmailPending = await db.User.findOne({
       where: {
         email: String(email).toLowerCase(),
-        status: accountStatus.ACCOUNT_PENDING,
+        status: ACCOUNT_STATUS.PENDING,
       },
     })
     if (checkUsername) {
@@ -61,14 +64,17 @@ class AuthCtrl extends BaseCtrl {
         password: hash,
         firstName,
         lastName,
-        status: accountStatus.ACCOUNT_PENDING,
+        status: ACCOUNT_STATUS.PENDING,
       })
+
       newUser.password = undefined
       const activation_token = jwt.sign({ newUser }, process.env.ACTIVATION_TOKEN_SECRET, {
         expiresIn: '5m',
       })
+
       const url = `${process.env.FRONTEND_URL}/activateEmail/${activation_token}`
-      sendEmail(email, url)
+      const emailTemplate = generateVerifyEmailTemplate(url)
+      sendEmail(email, emailTemplate)
 
       res.status(httpStatusCodes.CREATED).json({
         success: true,
@@ -87,14 +93,14 @@ class AuthCtrl extends BaseCtrl {
       const { email, status } = user.newUser
       const checkEmail = await db.User.findOne({ where: { email: email } })
       if (checkEmail) {
-        if (status === accountStatus.ACCOUNT_ACTIVE) {
+        if (status === ACCOUNT_STATUS.ACTIVE) {
           return res.json({
             success: true,
             message: 'Email already activated. ',
           })
         }
         const activeUser = await db.User.update(
-          { status: accountStatus.ACCOUNT_ACTIVE },
+          { status: ACCOUNT_STATUS.ACTIVE },
           { where: { email: email } }
         )
         res.status(httpStatusCodes.CREATED).send({ success: true, message: 'Comfirm email sucess' })
@@ -180,7 +186,7 @@ class AuthCtrl extends BaseCtrl {
           password: hash,
           firstName: given_name,
           lastName: family_name,
-          status: accountStatus.ACCOUNT_ACTIVE,
+          status: ACCOUNT_STATUS.ACCOUNT_ACTIVE,
           picture: picture,
         })
         newUser.password = undefined

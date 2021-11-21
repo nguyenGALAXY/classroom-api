@@ -17,9 +17,8 @@ export default (sequelize, DataTypes) => {
     role: {
       type: DataTypes.STRING,
     },
-    active: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: false,
+    status: {
+      type: DataTypes.STRING,
     },
   }
 

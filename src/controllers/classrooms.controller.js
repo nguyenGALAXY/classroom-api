@@ -1,10 +1,13 @@
 import db from '../models/index'
 import BaseCtrl from './base'
-import { controller, get, post } from 'route-decorators'
+import { controller, get, post, put } from 'route-decorators'
 import httpStatusCodes from 'http-status-codes'
 import { auth } from '../middleware'
-import { CLASSROOM_ROLE } from '../utils/constants'
+import { CLASSROOM_ROLE, CLASSROOM_STATUS } from '../utils/constants'
 import debug from '../utils/debug'
+import { sendEmail, generateInviteTemplate } from '../utils/mail'
+import jwt from 'jsonwebtoken'
+import { Op } from 'sequelize'
 
 /**
  * @swagger
@@ -49,31 +52,35 @@ class ClassroomCtrl extends BaseCtrl {
   @get('/', auth())
   async getClassrooms(req, res) {
     const userId = req.user.id
-    const classrooms = await db.Classroom.findAll({
-      include: [
-        {
-          model: db.User,
-          as: 'Owner',
-          attributes: {
-            exclude: ['password'],
-          },
-          where: { id: userId },
-        },
-        {
-          model: db.ClassroomUser,
-          where: { userId },
-          include: [
-            {
-              model: db.User,
-              attributes: {
-                exclude: ['password'],
-              },
+    let classrooms
+    try {
+      classrooms = await db.Classroom.findAll({
+        include: [
+          {
+            model: db.User,
+            as: 'Owner',
+            attributes: {
+              exclude: ['password'],
             },
-          ],
-        },
-      ],
-      order: [['createdAt', 'DESC']],
-    })
+          },
+          {
+            model: db.ClassroomUser,
+            where: { userId, status: CLASSROOM_STATUS.ACTIVE },
+            include: [
+              {
+                model: db.User,
+                attributes: {
+                  exclude: ['password'],
+                },
+              },
+            ],
+          },
+        ],
+        order: [['createdAt', 'DESC']],
+      })
+    } catch (error) {
+      debug.log('classrooms-ctrl', error)
+    }
     res.status(httpStatusCodes.OK).send(classrooms)
   }
   @get('/:id', auth())
@@ -134,6 +141,7 @@ class ClassroomCtrl extends BaseCtrl {
         userId,
         classroomId: classroom.id,
         role: CLASSROOM_ROLE.TEACHER,
+        status: CLASSROOM_STATUS.ACTIVE,
       })
     } catch (error) {
       debug.log('classroom-ctrl', error)
@@ -149,7 +157,6 @@ class ClassroomCtrl extends BaseCtrl {
 
     let classroomUser
 
-    // check input
     const existClassroom = await db.Classroom.findByPk(classroomId)
 
     if (!existClassroom) {
@@ -172,6 +179,7 @@ class ClassroomCtrl extends BaseCtrl {
         userId,
         classroomId,
         role: CLASSROOM_ROLE.STUDENT,
+        status: CLASSROOM_STATUS.ACTIVE,
       })
     } catch (error) {
       debug.log('classroom-ctrl', error)
@@ -184,8 +192,6 @@ class ClassroomCtrl extends BaseCtrl {
     const userId = req.user.id
 
     const { id: classroomId } = req.params
-
-    console.log(classroomId, userId)
 
     const isUserInClassroom = await db.ClassroomUser.count({
       where: {
@@ -201,7 +207,10 @@ class ClassroomCtrl extends BaseCtrl {
     }
 
     const users = await db.ClassroomUser.findAll({
-      where: { classroomId },
+      where: {
+        classroomId,
+        status: { [Op.in]: [CLASSROOM_STATUS.PENDING, CLASSROOM_STATUS.ACTIVE] },
+      },
       raw: true,
       include: {
         model: db.User,
@@ -209,6 +218,121 @@ class ClassroomCtrl extends BaseCtrl {
       },
     })
     res.status(httpStatusCodes.OK).send(users)
+  }
+
+  @post('/:id/invite', auth())
+  async inviteUsers(req, res) {
+    const userId = req.user.id
+
+    const { id: classroomId } = req.params
+    const { email: userEmail, role } = req.body
+
+    const classroom = await db.Classroom.findOne({
+      where: { id: classroomId },
+    })
+
+    if (!classroom) {
+      res.status(httpStatusCodes.BAD_REQUEST).send({ message: 'Classroom not exist' })
+    }
+
+    // check if user is teacher
+    const isTeacher = await db.ClassroomUser.findOne({
+      where: {
+        userId,
+        classroomId,
+        role: CLASSROOM_ROLE.TEACHER,
+      },
+    })
+
+    if (!isTeacher) {
+      return res
+        .status(httpStatusCodes.BAD_REQUEST)
+        .send({ message: 'Not have permission to invite user' })
+    }
+
+    const invitingUser = await db.User.findOne({
+      where: {
+        email: userEmail,
+      },
+    })
+
+    if (!invitingUser) {
+      return res.status(httpStatusCodes.BAD_REQUEST).send({ message: 'User not exist' })
+    }
+
+    const isUserExistInClass = await db.ClassroomUser.findOne({
+      where: {
+        userId: invitingUser.id,
+        classroomId,
+      },
+    })
+
+    if (isUserExistInClass) {
+      return res.status(httpStatusCodes.BAD_REQUEST).send({ message: 'User already in class' })
+    }
+
+    /**
+     * TODO: Check exist invite but not accept
+     */
+
+    let classroomUser
+    try {
+      classroomUser = await db.ClassroomUser.create({
+        userId: invitingUser.id,
+        classroomId,
+        role,
+        status: CLASSROOM_STATUS.PENDING,
+      })
+      const token = jwt.sign({ classroomUser }, process.env.CLASSROOM_INVITE_SECRET, {
+        expiresIn: '30m',
+      })
+
+      const url = `${process.env.FRONTEND_URL}/classrooms/join/accept-token?t=${token}`
+      const emailTemplate = generateInviteTemplate(url, role, classroom)
+      sendEmail(userEmail, emailTemplate)
+    } catch (error) {
+      debug.log('classrooms-ctrl', error)
+    }
+
+    const returnClassroomUser = { ...classroomUser.dataValues, User: invitingUser }
+
+    res
+      .status(httpStatusCodes.OK)
+      .send({ message: 'Invite user successful', newUser: returnClassroomUser })
+  }
+
+  @put('/join/accept-token', auth())
+  async acceptInviteToClass(req, res) {
+    const userId = req.user.id
+    const { token } = req.body
+
+    let classroomUser
+    try {
+      classroomUser = jwt.verify(token, process.env.CLASSROOM_INVITE_SECRET).classroomUser
+    } catch (error) {
+      debug.log('classrooms-ctrl', error.message)
+      if (error.message.includes('expired')) {
+        return res.status(httpStatusCodes.BAD_REQUEST).send({ message: error.message })
+      }
+    }
+
+    const isSameUser = Number(userId) === classroomUser.userId
+    if (!isSameUser) {
+      return res.status(httpStatusCodes.BAD_REQUEST).send({ message: 'Different user' })
+    }
+
+    try {
+      await db.ClassroomUser.update(
+        { status: CLASSROOM_STATUS.ACTIVE },
+        { where: { id: classroomUser.id } }
+      )
+    } catch (error) {
+      debug.log('classroom-ctrl', error)
+    }
+
+    res
+      .status(httpStatusCodes.OK)
+      .send({ message: 'Accept invite success', classroomId: classroomUser.classroomId })
   }
 }
 
