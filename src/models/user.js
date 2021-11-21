@@ -27,6 +27,12 @@ export default (sequelize, DataTypes) => {
     status: {
       type: DataTypes.STRING,
     },
+    studentId: {
+      type: DataTypes.STRING,
+    },
+    picture: {
+      type: DataTypes.STRING,
+    },
     createdAt: {
       allowNull: false,
       type: DataTypes.DATE,
