@@ -166,7 +166,6 @@ class AuthCtrl extends BaseCtrl {
         audience: process.env.LOGIN_GOOGLE_CLIENT_ID,
       })
       const { email, picture, family_name, given_name } = account.payload
-      console.log(picture)
       const checkUser = await db.User.findOne({
         where: { email: String(email).toLowerCase() },
       })
