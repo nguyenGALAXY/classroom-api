@@ -165,7 +165,7 @@ class AuthCtrl extends BaseCtrl {
         idToken: tokenId,
         audience: process.env.LOGIN_GOOGLE_CLIENT_ID,
       })
-      const { email, name, family_name, given_name } = account.payload
+      const { email, picture, family_name, given_name } = account.payload
       const checkUser = await db.User.findOne({
         where: { email: String(email).toLowerCase() },
       })
@@ -181,6 +181,7 @@ class AuthCtrl extends BaseCtrl {
           firstName: given_name,
           lastName: family_name,
           status: accountStatus.ACCOUNT_ACTIVE,
+          picture: picture,
         })
         newUser.password = undefined
         const activation_token = jwt.sign({ newUser }, process.env.ACTIVATION_TOKEN_SECRET, {
