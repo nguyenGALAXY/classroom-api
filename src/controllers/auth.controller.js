@@ -131,6 +131,7 @@ class AuthCtrl extends BaseCtrl {
           success: true,
           message: 'authentication succeeded',
           token,
+          user,
         })
       })
     })(req, res, next)
@@ -151,7 +152,8 @@ class AuthCtrl extends BaseCtrl {
       if (user) {
         user.password = undefined
         const token = jwt.sign({ user }, process.env.SECRET || 'meomeo')
-        res.send({ success: true, message: 'Login success', token })
+        const userData = user.dataValues
+        res.send({ success: true, message: 'Login success', token, userData })
       } else {
         return res.status(httpStatusCodes.BAD_REQUEST).json({
           success: false,
