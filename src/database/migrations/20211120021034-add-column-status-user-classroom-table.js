@@ -11,7 +11,7 @@ export default {
   down: (queryInterface, Sequelize) => {
     return Promise.all([
       queryInterface.addColumn('ClassroomUsers', 'active', {
-        type: Sequelize.Boolean,
+        type: Sequelize.BOOLEAN,
       }),
       queryInterface.removeColumn('ClassroomUsers', 'status'),
     ])
