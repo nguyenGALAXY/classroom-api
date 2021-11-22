@@ -87,14 +87,23 @@ class ClassroomCtrl extends BaseCtrl {
   async getDetailClassroom(req, res) {
     let classroom
     let { id: classroomId } = req.params
+    const userId = req.user.id
     try {
       classroom = await db.Classroom.findOne({
         where: { id: classroomId },
+        include: [
+          {
+            model: db.ClassroomUser,
+            attributes: ['role'],
+            where: { userId },
+          },
+        ],
       })
+
+      res.status(httpStatusCodes.OK).send({ userRole: classroom.ClassroomUsers[0].role, classroom })
     } catch (error) {
-      console.log(error)
+      res.status(httpStatusCodes.BAD_REQUEST).send(error)
     }
-    res.status(httpStatusCodes.OK).send(classroom)
   }
   /**
    * @swagger
