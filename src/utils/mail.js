@@ -72,9 +72,9 @@ export const sendEmail = (to, template) => {
   }
   smtpTransport.sendMail(mailOption, (err, infor) => {
     if (err) {
-      res.send(err)
+      console.log(err)
     } else {
-      res.send('Email sent: ' + infor.response)
+      console.log('Email sent: ' + infor.response)
     }
   })
 }
