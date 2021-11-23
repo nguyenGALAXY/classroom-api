@@ -8,6 +8,7 @@ import debug from '../utils/debug'
 import { sendEmail, generateInviteTemplate } from '../utils/mail'
 import jwt from 'jsonwebtoken'
 import { Op } from 'sequelize'
+import { ensureTeacher } from 'src/middleware/classroom.middleware.js'
 
 /**
  * @swagger
@@ -229,7 +230,7 @@ class ClassroomCtrl extends BaseCtrl {
     res.status(httpStatusCodes.OK).send(users)
   }
 
-  @post('/:id/invite', auth())
+  @post('/:id/invite', auth(), ensureTeacher())
   async inviteUsers(req, res) {
     const userId = req.user.id
 
@@ -242,21 +243,6 @@ class ClassroomCtrl extends BaseCtrl {
 
     if (!classroom) {
       res.status(httpStatusCodes.BAD_REQUEST).send({ message: 'Classroom not exist' })
-    }
-
-    // check if user is teacher
-    const isTeacher = await db.ClassroomUser.findOne({
-      where: {
-        userId,
-        classroomId,
-        role: CLASSROOM_ROLE.TEACHER,
-      },
-    })
-
-    if (!isTeacher) {
-      return res
-        .status(httpStatusCodes.BAD_REQUEST)
-        .send({ message: 'Not have permission to invite user' })
     }
 
     const invitingUser = await db.User.findOne({
@@ -342,6 +328,27 @@ class ClassroomCtrl extends BaseCtrl {
     res
       .status(httpStatusCodes.OK)
       .send({ message: 'Accept invite success', classroomId: classroomUser.classroomId })
+  }
+
+  @post('/:id/remove-user', auth(), ensureTeacher())
+  async removeUser(req, res) {
+    const userId = req.user.id
+    const { id: classroomId } = req.params
+    const { userId: removingUserId } = req.body
+
+    if (userId === removingUserId) {
+      return res
+        .status(httpStatusCodes.BAD_REQUEST)
+        .send({ message: 'You can not remove yourself' })
+    }
+    await db.ClassroomUser.destroy({
+      where: {
+        classroomId,
+        userId: removingUserId,
+      },
+    })
+
+    res.status(httpStatusCodes.OK).send({ message: 'Remove user successful' })
   }
 }
 

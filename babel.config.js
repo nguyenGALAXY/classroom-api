@@ -36,5 +36,13 @@ module.exports = {
       ],
     },
   },
-  plugins: [['@babel/plugin-proposal-decorators', { legacy: true }]],
+  plugins: [
+    ['@babel/plugin-proposal-decorators', { legacy: true }],
+    [
+      'module-resolver',
+      {
+        root: ['.'],
+      },
+    ],
+  ],
 }
