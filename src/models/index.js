@@ -19,16 +19,10 @@ if (config.use_env_variable) {
 }
 
 fs.readdirSync(__dirname)
-  .filter(
-    (file) =>
-      file.indexOf('.') !== 0 && file !== basename && file.slice(-3) === '.js'
-  )
+  .filter((file) => file.indexOf('.') !== 0 && file !== basename && file.slice(-3) === '.js')
   .forEach((file) => {
     // eslint-disable-next-line global-require
-    const model = require(path.join(__dirname, file)).default(
-      sequelize,
-      Sequelize.DataTypes
-    )
+    const model = require(path.join(__dirname, file)).default(sequelize, Sequelize.DataTypes)
     db[model.name] = model
   })
 
@@ -44,4 +38,5 @@ db.Classroom.hasMany(db.ClassroomUser, { foreignKey: 'classroomId' })
 db.ClassroomUser.belongsTo(db.User, { foreignKey: 'userId' })
 db.ClassroomUser.belongsTo(db.Classroom, { foreignKey: 'classroomId' })
 
+db.Classroom.hasMany(db.Grade, { foreignKey: 'ClassroomId' })
 export default db
