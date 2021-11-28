@@ -38,5 +38,5 @@ db.Classroom.hasMany(db.ClassroomUser, { foreignKey: 'classroomId' })
 db.ClassroomUser.belongsTo(db.User, { foreignKey: 'userId' })
 db.ClassroomUser.belongsTo(db.Classroom, { foreignKey: 'classroomId' })
 
-db.Classroom.hasMany(db.Grade, { foreignKey: 'ClassroomId' })
+db.Classroom.hasMany(db.Grade, { foreignKey: 'classroomId' })
 export default db

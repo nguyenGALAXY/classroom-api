@@ -2,37 +2,32 @@ import BaseCtrl from './base'
 import db from '../models/index'
 import { controller, get, post, put } from 'route-decorators'
 import httpStatusCodes from 'http-status-codes'
-const { Op } = require('sequelize')
+import { auth } from '../middleware'
 
-@controller('/api/grades')
+@controller('/api/classrooms/:id/grades')
 class GradesCtrl extends BaseCtrl {
-  @post('/')
+  @post('/', auth())
   async createGrade(req, res) {
     let { point, name } = req.body
-    let grade
+    let { id: classroomId } = req.params
+
+    // TODO: Check user is belong to classroom
+
     if (!name && !point) {
       res.status(httpStatusCodes.BAD_REQUEST).send('Name and point is required')
     }
+
+    let grade
     try {
-      grade = db.Grade.create({
+      grade = await db.Grade.create({
         name: name,
         point: point,
-        classroomId: req.classroom.id,
+        classroomId,
       })
-      console.log('log in:', name, point, classroomId)
     } catch (error) {
       console.log(error)
     }
-  }
-  @get('/')
-  async getGrades(req, res) {
-    let grades
-    try {
-      grades = await db.Grade.findAll()
-      console.log(grades)
-    } catch (error) {
-      console.log(error)
-    }
+    res.status(httpStatusCodes.OK).send(grade)
   }
 }
 export default GradesCtrl

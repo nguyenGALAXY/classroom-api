@@ -84,12 +84,12 @@ class ClassroomCtrl extends BaseCtrl {
     }
     res.status(httpStatusCodes.OK).send(classrooms)
   }
+
   @get('/:id', auth())
   async getDetailClassroom(req, res) {
     let classroom
     let { id: classroomId } = req.params
     const userId = req.user.id
-    console.log(userId)
     try {
       classroom = await db.Classroom.findOne({
         where: { id: classroomId },
@@ -98,6 +98,9 @@ class ClassroomCtrl extends BaseCtrl {
             model: db.ClassroomUser,
             attributes: ['role'],
             where: { userId },
+          },
+          {
+            model: db.Grade,
           },
         ],
       })

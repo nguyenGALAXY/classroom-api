@@ -26,22 +26,18 @@ module.exports = {
           key: 'id',
         },
       },
+      createdAt: {
+        allowNull: false,
+        type: Sequelize.DATE,
+      },
+      updatedAt: {
+        allowNull: false,
+        type: Sequelize.DATE,
+      },
     })
-    /**
-     * Add altering commands here.
-     *
-     * Example:
-     * await queryInterface.createTable('users', { id: Sequelize.INTEGER });
-     */
   },
 
   down: async (queryInterface, Sequelize) => {
     await queryInterface.dropTable('Grades')
-    /**
-     * Add reverting commands here.
-     *
-     * Example:
-     * await queryInterface.dropTable('users');
-     */
   },
 }

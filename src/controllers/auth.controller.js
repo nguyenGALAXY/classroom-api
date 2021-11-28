@@ -111,34 +111,30 @@ class AuthCtrl extends BaseCtrl {
   }
   @post('/login')
   async login(req, res, next) {
-    try {
-      await passport.authenticate('local', { session: false }, function (err, user, info) {
-        if (err) {
-          return next(err)
-        }
-        if (!user) {
-          return res.send({
-            success: false,
-            message: 'Incorrect username or password',
-          })
-        }
-        req.logIn(user, { session: false }, (loginErr) => {
-          if (loginErr) {
-            return next(loginErr)
-          }
-          user.password = undefined
-          const token = jwt.sign({ user }, process.env.SECRET || 'meomeo')
-          return res.send({
-            success: true,
-            message: 'authentication succeeded',
-            token,
-            user,
-          })
+    await passport.authenticate('local', { session: false }, function (err, user, info) {
+      if (err) {
+        return next(err)
+      }
+      if (!user) {
+        return res.send({
+          success: false,
+          message: 'Incorrect username or password',
         })
-      })(req, res, next)
-    } catch (error) {
-      console.log(error)
-    }
+      }
+      req.logIn(user, { session: false }, (loginErr) => {
+        if (loginErr) {
+          return next(loginErr)
+        }
+        user.password = undefined
+        const token = jwt.sign({ user }, process.env.SECRET || 'meomeo')
+        return res.send({
+          success: true,
+          message: 'authentication succeeded',
+          token,
+          user,
+        })
+      })
+    })(req, res, next)
   }
   @post('/google-login')
   async googleLogin(req, res) {
