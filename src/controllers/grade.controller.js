@@ -29,5 +29,29 @@ class GradesCtrl extends BaseCtrl {
     }
     res.status(httpStatusCodes.OK).send(grade)
   }
+  @put('/:gradeId', auth())
+  async updateGrade(req, res) {
+    let { gradeId } = req.params
+    let { name, point } = req.body
+    let grade
+    if (!name && !point) {
+      res.status(httpStatusCodes.BAD_REQUEST).send('Name and point is required')
+    }
+    try {
+      await db.Grade.update(
+        {
+          name: name,
+          point: point,
+        },
+        {
+          where: { id: gradeId },
+        }
+      )
+      await grade.save()
+    } catch (error) {
+      console.log(error)
+    }
+    res.status(httpStatusCodes.OK).send(grade)
+  }
 }
 export default GradesCtrl
