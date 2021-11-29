@@ -15,6 +15,10 @@ export default (sequelize, DataTypes) => {
       allowNull: false,
       type: DataTypes.FLOAT,
     },
+    index: {
+      allowNull: false,
+      type: DataTypes.INTEGER,
+    },
   }
 
   const gradeModel = sequelize.define('Grade', schema)
