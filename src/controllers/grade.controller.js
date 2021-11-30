@@ -8,7 +8,6 @@ const { Op } = require('sequelize')
 
 import debug from 'src/utils/debug'
 
-
 @controller('/api/classrooms/:id/grades')
 class GradesCtrl extends BaseCtrl {
   @post('/', auth())
@@ -34,33 +33,23 @@ class GradesCtrl extends BaseCtrl {
     res.status(httpStatusCodes.OK).send(grade)
   }
 
-  @put('/arrange/:idGrade1/:idGrade2', auth())
+  @put('/arrange', auth())
   async arrangeGrade(req, res) {
     try {
-      const { idGrade1: id1, idGrade2: id2 } = req.params
+      const item = req.body
       const { id: classroomId } = req.params
-      //Find index 2 grade to swap
-      const indexs = await db.Grade.findAll({
-        attributes: { exclude: ['password'] },
-        where: { [Op.or]: [{ id: id1 }, { id: id2 }], classroomId: classroomId },
+      let count = 0 //count position item in array
+      item.map(async (grade) => {
+        await db.Grade.update(
+          {
+            index: count,
+          },
+          {
+            where: { id: grade.id },
+          }
+        )
+        count++
       })
-      //Swap 2 grade index
-      await db.Grade.update(
-        {
-          index: indexs[1].index,
-        },
-        {
-          where: { id: id1 },
-        }
-      )
-      await db.Grade.update(
-        {
-          index: indexs[0].index,
-        },
-        {
-          where: { id: id2 },
-        }
-      )
       const Grades = await db.Grade.findAll({
         where: { classroomId },
       })
@@ -68,7 +57,7 @@ class GradesCtrl extends BaseCtrl {
     } catch (error) {
       return res.status(500).json({ msg: error.message })
     }
-
+  }
 
   @get('/', auth())
   async getGrades(req, res) {
@@ -120,7 +109,6 @@ class GradesCtrl extends BaseCtrl {
       },
     })
     res.status(httpStatusCodes.OK).send({ message: 'Delete assignment successful' })
-
   }
 }
 
