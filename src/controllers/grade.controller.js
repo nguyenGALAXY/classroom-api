@@ -3,10 +3,10 @@ import db from '../models/index'
 import { controller, get, post, del, put } from 'route-decorators'
 import httpStatusCodes from 'http-status-codes'
 import { auth } from '../middleware'
-
-const { Op } = require('sequelize')
-
 import debug from 'src/utils/debug'
+import { Op } from 'sequelize'
+import _ from 'lodash'
+import gradeService from 'src/services/grade.service'
 
 @controller('/api/classrooms/:id/grades')
 class GradesCtrl extends BaseCtrl {
@@ -19,6 +19,7 @@ class GradesCtrl extends BaseCtrl {
     if (!name && !point) {
       res.status(httpStatusCodes.BAD_REQUEST).send('Name and point is required')
     }
+
     let grade
     try {
       grade = await db.Grade.create({
@@ -28,7 +29,7 @@ class GradesCtrl extends BaseCtrl {
         classroomId,
       })
     } catch (error) {
-      console.log(error)
+      debug.log('grade-ctrl', error)
     }
     res.status(httpStatusCodes.OK).send(grade)
   }
@@ -63,17 +64,8 @@ class GradesCtrl extends BaseCtrl {
   async getGrades(req, res) {
     const { id: classroomId } = req.params
 
-    let grades
+    let grades = await gradeService.getGrades(classroomId)
 
-    try {
-      grades = await db.Grade.findAll({
-        where: {
-          classroomId,
-        },
-      })
-    } catch (error) {
-      debug.log('grade-ctrl', error)
-    }
     res.status(httpStatusCodes.OK).send(grades)
   }
 
@@ -90,9 +82,7 @@ class GradesCtrl extends BaseCtrl {
           name: name,
           point: point,
         },
-        {
-          where: { id: gradeId },
-        }
+        { where: { id: gradeId } }
       )
     } catch (error) {
       debug.log('grade-ctrl', error)
@@ -110,6 +100,16 @@ class GradesCtrl extends BaseCtrl {
     })
     res.status(httpStatusCodes.OK).send({ message: 'Delete assignment successful' })
   }
-}
 
+  @post('/:gradeId/users/:userId', auth())
+  async updateUserGrade(req, res) {
+    const { gradeId, userId } = req.params
+    // TODO: Enhance to update assignment when
+    // Right now, we only update point
+    const { point } = req.body
+    const gradeUser = await gradeService.updateUserGrade(gradeId, userId, point)
+
+    res.status(httpStatusCodes.OK).send({ message: 'Update user grade success', data: gradeUser })
+  }
+}
 export default GradesCtrl

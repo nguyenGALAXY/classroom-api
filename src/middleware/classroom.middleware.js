@@ -23,3 +23,5 @@ export function ensureTeacher() {
     next && (await next())
   }
 }
+
+export function ensureUserInClassroom() {}

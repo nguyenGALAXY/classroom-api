@@ -9,6 +9,7 @@ import { sendEmail, generateInviteTemplate } from '../utils/mail'
 import jwt from 'jsonwebtoken'
 import { Op } from 'sequelize'
 import { ensureTeacher } from 'src/middleware/classroom.middleware.js'
+import classroomService from 'src/services/classroom.service'
 
 /**
  * @swagger
@@ -220,17 +221,8 @@ class ClassroomCtrl extends BaseCtrl {
         .send({ message: 'User do not belong to classroom' })
     }
 
-    const users = await db.ClassroomUser.findAll({
-      where: {
-        classroomId,
-        status: { [Op.in]: [CLASSROOM_STATUS.PENDING, CLASSROOM_STATUS.ACTIVE] },
-      },
-      raw: true,
-      include: {
-        model: db.User,
-        exclude: ['password'],
-      },
-    })
+    const users = await classroomService.getUsersByClassroomId(classroomId)
+
     res.status(httpStatusCodes.OK).send(users)
   }
 

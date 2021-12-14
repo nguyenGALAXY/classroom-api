@@ -1,0 +1,7 @@
+// this file help easy import in development
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "experimentalDecorators": true
+  }
+}

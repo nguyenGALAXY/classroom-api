@@ -31,12 +31,18 @@ db.Sequelize = Sequelize
 
 db.User.hasMany(db.Classroom, { foreignKey: 'ownerId' })
 db.User.hasMany(db.ClassroomUser, { foreignKey: 'userId' })
+db.User.hasMany(db.GradeUser, { foreignKey: 'userId' })
 
 db.Classroom.belongsTo(db.User, { foreignKey: 'ownerId', as: 'Owner' })
 db.Classroom.hasMany(db.ClassroomUser, { foreignKey: 'classroomId' })
+db.Classroom.hasMany(db.Grade, { foreignKey: 'classroomId' })
 
 db.ClassroomUser.belongsTo(db.User, { foreignKey: 'userId' })
 db.ClassroomUser.belongsTo(db.Classroom, { foreignKey: 'classroomId' })
 
-db.Classroom.hasMany(db.Grade, { foreignKey: 'classroomId' })
+db.Grade.hasMany(db.GradeUser, { foreignKey: 'gradeId' })
+
+db.GradeUser.belongsTo(db.Grade, { foreignKey: 'gradeId' })
+db.GradeUser.belongsTo(db.User, { foreignKey: 'userId' })
+
 export default db
