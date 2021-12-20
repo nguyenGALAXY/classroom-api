@@ -25,7 +25,7 @@ export async function getGrades(classroomId) {
   }
 
   const users = {}
-  const gradeProperties = ['id', 'classroomId', 'name', 'point', 'index']
+  const gradeProperties = ['id', 'classroomId', 'name', 'point', 'index', 'finalized']
   let returnGrades = _.unionBy(grades, 'id').map((g) => _.pick(g, gradeProperties))
 
   grades.forEach((grade) => {
