@@ -112,7 +112,7 @@ class GradesCtrl extends BaseCtrl {
     res.status(httpStatusCodes.OK).send({ message: 'Update user grade success', data: gradeUser })
   }
   @post('/:gradeId', auth())
-  async updateUserGrade(req, res) {
+  async updateColumnGrade(req, res) {
     const { gradeId } = req.params
     const { colGrades } = req.body
     let updatedCol = await Promise.all(
