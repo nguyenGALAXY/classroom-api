@@ -19,6 +19,9 @@ export default (sequelize, DataTypes) => {
       allowNull: false,
       type: DataTypes.INTEGER,
     },
+    finalized: {
+      type: DataTypes.BOOLEAN,
+    },
   }
 
   const gradeModel = sequelize.define('Grade', schema)

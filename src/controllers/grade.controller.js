@@ -125,5 +125,15 @@ class GradesCtrl extends BaseCtrl {
       .status(httpStatusCodes.OK)
       .send({ message: 'Update column grade success', data: updatedCol })
   }
+  @post('/:gradeId/finalized', auth())
+  async finalizedGrade(req, res) {
+    const { gradeId } = req.params
+    try {
+      await db.Grade.update({ finalized: true }, { where: { id: gradeId } })
+      res.status(httpStatusCodes.OK).send({ message: 'Finalized success' })
+    } catch (error) {
+      res.status(httpStatusCodes.BAD_REQUEST).send({ message: 'Finalized fail' })
+    }
+  }
 }
 export default GradesCtrl
