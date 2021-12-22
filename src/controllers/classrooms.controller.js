@@ -10,6 +10,7 @@ import jwt from 'jsonwebtoken'
 import { Op } from 'sequelize'
 import { ensureTeacher } from 'src/middleware/classroom.middleware.js'
 import classroomService from 'src/services/classroom.service'
+import lodashGet from 'lodash/get'
 
 /**
  * @swagger
@@ -345,6 +346,20 @@ class ClassroomCtrl extends BaseCtrl {
     })
 
     res.status(httpStatusCodes.OK).send({ message: 'Remove user successful' })
+  }
+
+  @post('/:id/upload', auth(), ensureTeacher())
+  async handleUploadedUsers(req, res) {
+    const { id: classroomId } = req.params
+    const { data: uploadedUsers } = req.body
+
+    try {
+      await classroomService.updateUsersFromUploadFile(classroomId, uploadedUsers)
+      return res.status(httpStatusCodes.OK).json({ message: 'Upload data success' })
+    } catch (error) {
+      debug.log('classroom-ctrl', error)
+      return res.status(500)
+    }
   }
 }
 

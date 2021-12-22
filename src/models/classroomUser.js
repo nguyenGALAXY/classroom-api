@@ -20,6 +20,9 @@ export default (sequelize, DataTypes) => {
     status: {
       type: DataTypes.STRING,
     },
+    fullName: {
+      type: DataTypes.STRING,
+    },
   }
 
   const classroomUserModel = sequelize.define('ClassroomUser', schema)
