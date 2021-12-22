@@ -31,13 +31,13 @@ export async function getUsersByClassroomId(classroomId, opt = { roles: [] }) {
 }
 
 export async function updateUsersFromUploadFile(classroomId, uploadedUsers) {
-  const studentIds = uploadedUsers.map((user) => user.studentId)
+  const studentIds = uploadedUsers.map((user) => user.studentId.toString())
   try {
     const classroomUsers = await db.ClassroomUser.findAll({
       include: [
         {
           model: db.User,
-          where: { id: { [Op.in]: studentIds } },
+          where: { studentId: { [Op.in]: studentIds } },
         },
       ],
       where: {
@@ -60,7 +60,6 @@ export async function updateUsersFromUploadFile(classroomId, uploadedUsers) {
         fullName: uploadedUser.fullName,
       }
     })
-
     const result = await Promise.all(
       updatingClassroomUsers.map(async (clrUser) => {
         const [updatedRow, value] = await db.ClassroomUser.update(
@@ -78,7 +77,6 @@ export async function updateUsersFromUploadFile(classroomId, uploadedUsers) {
         return value[0]
       })
     )
-
     return result
   } catch (error) {
     throw new Error(error)
