@@ -33,6 +33,9 @@ export default (sequelize, DataTypes) => {
     picture: {
       type: DataTypes.STRING,
     },
+    role: {
+      type: DataTypes.STRING,
+    },
     createdAt: {
       allowNull: false,
       type: DataTypes.DATE,
