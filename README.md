@@ -20,6 +20,12 @@ DB_HOST=127.0.0.1 \
 yarn sequelize db:migrate
 ```
 
+#### Run seeder
+
+```
+yarn sequelize db:seed:all
+```
+
 ## Run repo
 
 #### Start repo in development

@@ -4,9 +4,16 @@ import httpStatusCodes from 'http-status-codes'
 import db from '../models/index'
 import { auth } from '../middleware'
 import { validatePhoneNumber } from '../services/validateService'
+import isEmpty from 'lodash/isEmpty'
+
 const { Op } = require('sequelize')
 @controller('/api/user')
 class UserCtrl extends BaseCtrl {
+  constructor() {
+    super()
+    this._ns = 'user-ctrl'
+  }
+
   @get('/', auth())
   async getUserById(req, res) {
     try {
@@ -20,6 +27,7 @@ class UserCtrl extends BaseCtrl {
       return res.status(500).json({ msg: err.message })
     }
   }
+
   @put('/', auth())
   async updateUserInfo(req, res) {
     try {
@@ -62,6 +70,27 @@ class UserCtrl extends BaseCtrl {
       res.json({ message: message, user })
     } catch (err) {
       return res.status(500).json({ msg: err.message })
+    }
+  }
+
+  @get('/all', auth())
+  async getUsers(req, res) {
+    let { roles } = req.query
+
+    const queryObj = {}
+    if (!isEmpty(roles)) {
+      queryObj.role = { [Op.in]: roles }
+    }
+
+    try {
+      const users = await db.User.findAll({
+        attributes: { exclude: ['password'] },
+        where: queryObj,
+      })
+      res.json(users)
+    } catch (error) {
+      debug.log(this._ns, error.message)
+      res.status(httpStatusCodes.INTERNAL_SERVER_ERROR)
     }
   }
 }
