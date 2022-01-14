@@ -5,6 +5,7 @@ import db from '../models/index'
 import { auth } from '../middleware'
 import { validatePhoneNumber } from '../services/validateService'
 import isEmpty from 'lodash/isEmpty'
+import debug from 'src/utils/debug'
 
 const { Op } = require('sequelize')
 @controller('/api/user')
@@ -73,7 +74,27 @@ class UserCtrl extends BaseCtrl {
     }
   }
 
-  @get('/all', auth())
+  @get('/:id', auth())
+  async getUser(req, res) {
+    const userId = req.params.id
+    if (!userId) {
+      return res.status(httpStatusCodes.BAD_REQUEST)
+    }
+
+    try {
+      const user = await db.User.findByPk(userId, {
+        attributes: {
+          exclude: ['password'],
+        },
+        raw: true,
+      })
+      res.json(user)
+    } catch (error) {
+      res.status(httpStatusCodes.INTERNAL_SERVER_ERROR, error.message)
+    }
+  }
+
+  @get('/admin/users', auth())
   async getUsers(req, res) {
     let { roles } = req.query
 
@@ -87,10 +108,10 @@ class UserCtrl extends BaseCtrl {
         attributes: { exclude: ['password'] },
         where: queryObj,
       })
-      res.json(users)
+      return res.json(users)
     } catch (error) {
       debug.log(this._ns, error.message)
-      res.status(httpStatusCodes.INTERNAL_SERVER_ERROR)
+      return res.status(httpStatusCodes.INTERNAL_SERVER_ERROR)
     }
   }
 }

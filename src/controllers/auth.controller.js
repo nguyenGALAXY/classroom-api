@@ -8,7 +8,8 @@ import jwt from 'jsonwebtoken'
 import { validateEmail, checkPassword } from '../services/auth.service'
 import { google } from 'googleapis'
 import { sendEmail, generateVerifyEmailTemplate } from '../utils/mail'
-import { ACCOUNT_STATUS } from '../utils/constants'
+import { ACCOUNT_STATUS, CLASSROOM_ROLE } from '../utils/constants'
+import { auth, ensureRoles } from '../middleware'
 
 require('dotenv').config()
 const { OAuth2 } = google.auth
@@ -84,6 +85,7 @@ class AuthCtrl extends BaseCtrl {
       res.status(httpStatusCodes.BAD_REQUEST).send(err.message)
     }
   }
+
   @post('/activate-email')
   async activateEmail(req, res) {
     try {
@@ -109,6 +111,7 @@ class AuthCtrl extends BaseCtrl {
       res.status(500).json({ success: false, message: err.message })
     }
   }
+
   @post('/login')
   async login(req, res, next) {
     await passport.authenticate('local', { session: false }, function (err, user, info) {
@@ -136,6 +139,7 @@ class AuthCtrl extends BaseCtrl {
       })
     })(req, res, next)
   }
+
   @post('/google-login')
   async googleLogin(req, res) {
     try {
@@ -164,6 +168,7 @@ class AuthCtrl extends BaseCtrl {
       return res.status(500).json({ success: false, message: err.message })
     }
   }
+
   @post('/google-signup')
   async googleSignUp(req, res) {
     try {
@@ -203,6 +208,76 @@ class AuthCtrl extends BaseCtrl {
       }
     } catch (err) {
       return res.status(500).json({ success: false, message: err.message })
+    }
+  }
+
+  @post('/create', auth(), ensureRoles([CLASSROOM_ROLE.ADMIN]))
+  async createAccount(req, res) {
+    const { username, email, password, firstName, lastName, role } = req.body
+    const hash = await hashPassword(password)
+    //Validate and check acc
+    if (!validateEmail(email)) {
+      return res.status(400).json({ success: false, message: 'Invalid email' })
+    }
+    const checkUsername = await db.User.findOne({
+      where: { username: username },
+    })
+    const checkEmailActive = await db.User.findOne({
+      where: {
+        email: String(email).toLowerCase(),
+        status: ACCOUNT_STATUS.ACTIVE,
+      },
+    })
+    const checkEmailPending = await db.User.findOne({
+      where: {
+        email: String(email).toLowerCase(),
+        status: ACCOUNT_STATUS.PENDING,
+      },
+    })
+    if (checkUsername) {
+      return res.status(400).json({ success: false, message: 'Username already exists. ' })
+    }
+    if (checkEmailActive) {
+      return res.status(400).json({ success: false, message: 'Email already exists. ' })
+    }
+    if (checkEmailPending) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email was not active, please check your email to activate. ',
+      })
+    }
+    if (checkPassword(password)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Password must at least 6 characters.',
+      })
+    }
+    try {
+      const newUser = await db.User.create({
+        username,
+        email,
+        password: hash,
+        firstName,
+        lastName,
+        status: ACCOUNT_STATUS.PENDING,
+        role,
+      })
+
+      newUser.password = undefined
+      const activation_token = jwt.sign({ newUser }, process.env.ACTIVATION_TOKEN_SECRET, {
+        expiresIn: '5m',
+      })
+
+      const url = `${process.env.FRONTEND_URL}/activateEmail/${activation_token}`
+      const emailTemplate = generateVerifyEmailTemplate(url)
+      sendEmail(email, emailTemplate)
+
+      res.status(httpStatusCodes.CREATED).json({
+        success: true,
+        message: 'Create Success.',
+      })
+    } catch (err) {
+      res.status(httpStatusCodes.BAD_REQUEST).send(err.message)
     }
   }
 }
