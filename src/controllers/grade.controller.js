@@ -7,6 +7,7 @@ import debug from 'src/utils/debug'
 import { Op } from 'sequelize'
 import _ from 'lodash'
 import gradeService from 'src/services/grade.service'
+import reviewGradeService from 'src/services/reviewGrade.service'
 
 @controller('/api/classrooms/:id/grades')
 class GradesCtrl extends BaseCtrl {
@@ -133,6 +134,99 @@ class GradesCtrl extends BaseCtrl {
       res.status(httpStatusCodes.OK).send({ message: 'Finalized success' })
     } catch (error) {
       res.status(httpStatusCodes.BAD_REQUEST).send({ message: 'Finalized fail' })
+    }
+  }
+  @post('/reviewGrade/:gradeId', auth())
+  async createReviewGrade(req, res) {
+    const userId = req.user.id
+    const { gradeId } = req.params
+    const { explanation, expectationGrade } = req.body
+    if (explanation == null || expectationGrade == null) {
+      res
+        .status(httpStatusCodes.BAD_REQUEST)
+        .send({ message: 'Request review fail, please enter fill attibutes' })
+    } else {
+      try {
+        const responses = await db.ReviewGrade.create({
+          explanation: explanation,
+          expectationGrade: expectationGrade,
+          gradeId: gradeId,
+          ownerId: userId,
+        })
+        const reviewGradeId = responses.dataValues.id
+        await db.GradeUser.update(
+          {
+            reviewGradeId,
+          },
+          {
+            where: { gradeId, userId },
+          }
+        )
+        res.status(httpStatusCodes.OK).send({ reviewGradeId, message: 'Request review success' })
+      } catch (error) {
+        res.status(httpStatusCodes.BAD_REQUEST).send({ message: error.message })
+      }
+    }
+  }
+  @get('/reviewGrade/:reviewGradeId', auth())
+  async getReviewGrade(req, res) {
+    const { reviewGradeId } = req.params
+    try {
+      const reviewGrade = await reviewGradeService.getReviewGradebyId(reviewGradeId)
+      const commentsReview = await reviewGradeService.getCommentReviewGrade(reviewGradeId)
+      res.status(httpStatusCodes.OK).send({ reviewGrade, commentsReview })
+    } catch (error) {
+      res.status(httpStatusCodes.BAD_REQUEST).send({ message: 'Get review grade fail' })
+    }
+  }
+  @get('/reviewGrade', auth())
+  async getReviewGrades(req, res) {
+    const { id } = req.params
+    try {
+      const reviewGrade = await reviewGradeService.getReviewGrades(id)
+      res.status(httpStatusCodes.OK).send({ reviewGrade })
+    } catch (error) {
+      res.status(httpStatusCodes.BAD_REQUEST).send({ message: 'Get review grade fail' })
+    }
+  }
+  @post('/reviewGrade/:reviewGradeId/comment', auth())
+  async commentReviewGrade(req, res) {
+    const userId = req.user.id
+    const { reviewGradeId } = req.params
+    const { content } = req.body
+    if (content == null) {
+      res
+        .status(httpStatusCodes.BAD_REQUEST)
+        .send({ message: 'Comment fail, please fill content comment' })
+    } else {
+      try {
+        const response = await db.CommentReviewGrade.create({
+          content,
+          reviewGradeId,
+          userId,
+        })
+        res
+          .status(httpStatusCodes.OK)
+          .send({ comment: response, message: 'Comment review success' })
+      } catch (error) {
+        res.status(httpStatusCodes.BAD_REQUEST).send({ message: 'Comment review fail' })
+      }
+    }
+  }
+  @post('/reviewGrade/:reviewGradeId/finalDecision', auth())
+  async finalDecisionGrade(req, res) {
+    const { reviewGradeId } = req.params
+    const { gradeId, userId, point } = req.body
+    try {
+      const gradeUser = reviewGradeService.finalDecisionReview(
+        gradeId,
+        userId,
+        point,
+        reviewGradeId
+      )
+      res.status(httpStatusCodes.OK).send({ gradeUser })
+    } catch (error) {
+      res.status(httpStatusCodes.BAD_REQUEST).send({ message: 'Get review grade fail' })
     }
   }
 }

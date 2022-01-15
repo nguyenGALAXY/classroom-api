@@ -26,6 +26,13 @@ export default (sequelize, DataTypes) => {
     point: {
       type: DataTypes.FLOAT,
     },
+    reviewGradeId: {
+      type: DataTypes.INTEGER,
+      references: {
+        model: 'ReviewGrades',
+        key: 'id',
+      },
+    },
   }
 
   const gradeUserModel = sequelize.define('GradeUser', schema)
