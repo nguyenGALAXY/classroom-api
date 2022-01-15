@@ -41,6 +41,7 @@ export async function getGrades(classroomId) {
       'GradeUsers.User.picture',
       'GradeUsers.assignment',
       'GradeUsers.point',
+      'GradeUsers.reviewGradeId',
     ]
 
     let keymap = {
@@ -55,6 +56,7 @@ export async function getGrades(classroomId) {
       'GradeUsers.User.picture': 'User.picture',
       'GradeUsers.assignment': 'assignment',
       'GradeUsers.point': 'point',
+      'GradeUsers.reviewGradeId': 'reviewGradeId',
     }
 
     if (isEmpty(users[grade.id])) {
@@ -106,7 +108,6 @@ export async function updateUserGrade(gradeId, userId, point) {
   } catch (err) {
     debug.log('grade-ctrl', err)
   }
-
   return result[0]
 }
 
