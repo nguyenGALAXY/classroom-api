@@ -130,6 +130,21 @@ class AuthCtrl extends BaseCtrl {
         }
         user.password = undefined
         const token = jwt.sign({ user }, process.env.SECRET || 'meomeo')
+
+        if (user.status === ACCOUNT_STATUS.BAN) {
+          return res.send({
+            success: false,
+            message: 'This User Have Been Banned',
+          })
+        }
+
+        if (user.status === ACCOUNT_STATUS.PENDING) {
+          return res.send({
+            success: false,
+            message: 'Activate Account First',
+          })
+        }
+
         return res.send({
           success: true,
           message: 'authentication succeeded',

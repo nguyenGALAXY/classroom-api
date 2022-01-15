@@ -55,11 +55,7 @@ export default (sequelize, DataTypes) => {
     }
     const isPasswordCorrect = await checkPassword(plainPassword, user.password)
     if (isPasswordCorrect) {
-      if (user.status === ACCOUNT_STATUS.ACTIVE) {
-        return user
-      }
-    } else {
-      return null
+      return user
     }
   }
 
