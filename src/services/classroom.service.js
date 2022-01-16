@@ -83,7 +83,11 @@ export async function updateUsersFromUploadFile(classroomId, uploadedUsers) {
   }
 }
 
+export async function getClassroomById(id) {
+  return db.Classroom.findByPk(id, { raw: true })
+}
 export default {
   getUsersByClassroomId,
   updateUsersFromUploadFile,
+  getClassroomById,
 }

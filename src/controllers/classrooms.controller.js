@@ -1,6 +1,6 @@
 import db from '../models/index'
 import BaseCtrl from './base'
-import { controller, get, post, put } from 'route-decorators'
+import { controller, get, post, put, del } from 'route-decorators'
 import httpStatusCodes from 'http-status-codes'
 import { auth } from '../middleware'
 import { CLASSROOM_ROLE, CLASSROOM_STATUS } from '../utils/constants'
@@ -86,7 +86,42 @@ class ClassroomCtrl extends BaseCtrl {
     }
     res.status(httpStatusCodes.OK).send(classrooms)
   }
-
+  @get('/admin/classrooms', auth())
+  async getClassroomByAdmin(req, res) {
+    let classrooms
+    try {
+      classrooms = await db.Classroom.findAll({
+        include: [
+          {
+            model: db.User,
+            as: 'Owner',
+            attributes: {
+              exclude: ['password'],
+            },
+          },
+        ],
+      })
+      res.json(classrooms)
+    } catch (error) {
+      debug.log('classroom-ctrl', error)
+      res.status(httpStatusCodes.BAD_REQUEST).send(error)
+    }
+  }
+  @del('/delete/:id', auth())
+  async deleteClassroom(req, res) {
+    let { id: classroomId } = req.params
+    try {
+      let delClassroom = await db.Classroom.destroy({
+        where: {
+          id: classroomId,
+        },
+      })
+      res.json(delClassroom)
+    } catch (error) {
+      debug.log('error when del Class', error)
+      res.status(httpStatusCodes.BAD_REQUEST).send(error)
+    }
+  }
   @get('/:id', auth())
   async getDetailClassroom(req, res) {
     let classroom

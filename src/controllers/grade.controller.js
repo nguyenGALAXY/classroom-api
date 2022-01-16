@@ -4,9 +4,11 @@ import { controller, get, post, del, put } from 'route-decorators'
 import httpStatusCodes from 'http-status-codes'
 import { auth } from '../middleware'
 import debug from 'src/utils/debug'
-import { Op } from 'sequelize'
 import _ from 'lodash'
 import gradeService from 'src/services/grade.service'
+import reviewGradeService from 'src/services/reviewGrade.service'
+import classroomService from 'src/services/classroom.service'
+import { CLASSROOM_ROLE, NOTIFICATION_STATUS } from 'src/utils/constants'
 
 @controller('/api/classrooms/:id/grades')
 class GradesCtrl extends BaseCtrl {
@@ -104,13 +106,13 @@ class GradesCtrl extends BaseCtrl {
   @post('/:gradeId/users/:userId', auth())
   async updateUserGrade(req, res) {
     const { gradeId, userId } = req.params
-    // TODO: Enhance to update assignment when
     // Right now, we only update point
     const { point } = req.body
     const gradeUser = await gradeService.updateUserGrade(gradeId, userId, point)
 
     res.status(httpStatusCodes.OK).send({ message: 'Update user grade success', data: gradeUser })
   }
+
   @post('/:gradeId', auth())
   async updateColumnGrade(req, res) {
     const { gradeId } = req.params
@@ -129,10 +131,150 @@ class GradesCtrl extends BaseCtrl {
   async finalizedGrade(req, res) {
     const { gradeId } = req.params
     try {
-      await db.Grade.update({ finalized: true }, { where: { id: gradeId } })
+      let [_, grade] = await db.Grade.update(
+        { finalized: true },
+        { where: { id: gradeId }, returning: true }
+      )
+
+      // extract value from returning array
+      grade = grade[0]
+
+      // create notification to all student in class
+      const classroomId = grade.classroomId
+      const classroom = await classroomService.getClassroomById(classroomId)
+      const students = await classroomService.getUsersByClassroomId(classroomId, {
+        roles: [CLASSROOM_ROLE.STUDENT],
+      })
+
+      const notifications = students.map((s) => ({
+        userId: s.userId,
+        content: `Grade ${grade.name} in classroom ${classroom.name} has been finalized.`,
+        status: NOTIFICATION_STATUS.UNREAD,
+      }))
+
+      await db.Notification.bulkCreate(notifications)
+
       res.status(httpStatusCodes.OK).send({ message: 'Finalized success' })
     } catch (error) {
+      debug.log('grade-ctrl', error.message)
       res.status(httpStatusCodes.BAD_REQUEST).send({ message: 'Finalized fail' })
+    }
+  }
+  @post('/reviewGrade/:gradeId', auth())
+  async createReviewGrade(req, res) {
+    const userId = req.user.id
+    const { gradeId } = req.params
+    const { explanation, expectationGrade } = req.body
+    if (explanation == null || expectationGrade == null) {
+      res
+        .status(httpStatusCodes.BAD_REQUEST)
+        .send({ message: 'Request review fail, please enter fill attibutes' })
+    } else {
+      try {
+        const responses = await db.ReviewGrade.create({
+          explanation: explanation,
+          expectationGrade: expectationGrade,
+          gradeId: gradeId,
+          ownerId: userId,
+        })
+        const reviewGradeId = responses.dataValues.id
+        await db.GradeUser.update(
+          {
+            reviewGradeId,
+          },
+          {
+            where: { gradeId, userId },
+          }
+        )
+        res.status(httpStatusCodes.OK).send({ reviewGradeId, message: 'Request review success' })
+      } catch (error) {
+        res.status(httpStatusCodes.BAD_REQUEST).send({ message: error.message })
+      }
+    }
+  }
+  @get('/reviewGrade/:reviewGradeId', auth())
+  async getReviewGrade(req, res) {
+    const { reviewGradeId } = req.params
+    try {
+      const reviewGrade = await reviewGradeService.getReviewGradebyId(reviewGradeId)
+      const commentsReview = await reviewGradeService.getCommentReviewGrade(reviewGradeId)
+      res.status(httpStatusCodes.OK).send({ reviewGrade, commentsReview })
+    } catch (error) {
+      res.status(httpStatusCodes.BAD_REQUEST).send({ message: 'Get review grade fail' })
+    }
+  }
+  @get('/reviewGrade', auth())
+  async getReviewGrades(req, res) {
+    const { id } = req.params
+    try {
+      const reviewGrade = await reviewGradeService.getReviewGrades(id)
+      res.status(httpStatusCodes.OK).send({ reviewGrade })
+    } catch (error) {
+      res.status(httpStatusCodes.BAD_REQUEST).send({ message: 'Get review grade fail' })
+    }
+  }
+  @post('/reviewGrade/:reviewGradeId/comment', auth())
+  async commentReviewGrade(req, res) {
+    const userId = req.user.id
+    const { reviewGradeId } = req.params
+    const { content } = req.body
+    if (content == null) {
+      res
+        .status(httpStatusCodes.BAD_REQUEST)
+        .send({ message: 'Comment fail, please fill content comment' })
+    } else {
+      try {
+        const response = await db.CommentReviewGrade.create({
+          content,
+          reviewGradeId,
+          userId,
+        })
+        res
+          .status(httpStatusCodes.OK)
+          .send({ comment: response, message: 'Comment review success' })
+
+        // createNotify
+        const reviewGrade = await db.ReviewGrade.findByPk(reviewGradeId, { raw: true })
+        const ownerId = reviewGrade.ownerId
+        const grade = await db.Grade.findByPk(reviewGrade.gradeId, { raw: true })
+
+        // comment by teacher
+        if (userId !== ownerId) {
+          await db.Notification.create({
+            userId: ownerId,
+            content: `Teacher have reply your review on grade ${grade.name}`,
+            status: NOTIFICATION_STATUS.UNREAD,
+          })
+        }
+      } catch (error) {
+        res.status(httpStatusCodes.BAD_REQUEST).send({ message: 'Comment review fail' })
+      }
+    }
+  }
+  @post('/reviewGrade/:reviewGradeId/finalDecision', auth())
+  async finalDecisionGrade(req, res) {
+    const { reviewGradeId } = req.params
+    const { gradeId, userId, point } = req.body
+    try {
+      const gradeUser = reviewGradeService.finalDecisionReview(
+        gradeId,
+        userId,
+        point,
+        reviewGradeId
+      )
+
+      const updatedGrade = await db.Grade.findByPk(gradeId, { raw: true })
+
+      // notify to student
+      await db.Notification.create({
+        userId,
+        content: `Teacher have finalize your review on grade ${updatedGrade.name}`,
+        status: NOTIFICATION_STATUS.UNREAD,
+      })
+
+      res.status(httpStatusCodes.OK).send({ gradeUser })
+    } catch (error) {
+      res.status(httpStatusCodes.BAD_REQUEST).send({ message: 'Get review grade fail' })
     }
   }
 }

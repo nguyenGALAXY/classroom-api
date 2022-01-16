@@ -20,7 +20,7 @@
     "strapi": true
   },
   "rules": {
-    "prettier/prettier": "error",
+    "prettier/prettier": "warn",
     "no-console": "error"
   }
 }
