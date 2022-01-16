@@ -32,6 +32,7 @@ db.Sequelize = Sequelize
 db.User.hasMany(db.Classroom, { foreignKey: 'ownerId' })
 db.User.hasMany(db.ClassroomUser, { foreignKey: 'userId' })
 db.User.hasMany(db.GradeUser, { foreignKey: 'userId' })
+db.User.hasMany(db.Notification, { foreignKey: 'userId' })
 
 db.Classroom.belongsTo(db.User, { foreignKey: 'ownerId', as: 'Owner' })
 db.Classroom.hasMany(db.ClassroomUser, { foreignKey: 'classroomId' })
@@ -54,4 +55,7 @@ db.ReviewGrade.hasMany(db.CommentReviewGrade, { foreignKey: 'reviewGradeId' })
 
 db.CommentReviewGrade.belongsTo(db.ReviewGrade, { foreignKey: 'reviewGradeId' })
 db.CommentReviewGrade.belongsTo(db.User, { foreignKey: 'userId' })
+
+db.Notification.belongsTo(db.User, { foreignKey: 'userId' })
+
 export default db

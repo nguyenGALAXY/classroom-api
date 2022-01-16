@@ -31,7 +31,7 @@ class UserCtrl extends BaseCtrl {
   }
 
   @put('/', auth())
-  async updateUserInfo(req, res) {
+  async updateUser(req, res) {
     try {
       const userId = req.user.id
       let message = ''

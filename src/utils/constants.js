@@ -13,3 +13,7 @@ export const CLASSROOM_STATUS = {
   PENDING: 'PENDING',
   ACTIVE: 'ACTIVE',
 }
+export const NOTIFICATION_STATUS = {
+  UNREAD: 'UNREAD',
+  READ: 'READ',
+}
