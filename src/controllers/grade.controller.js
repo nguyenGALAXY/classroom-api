@@ -9,6 +9,7 @@ import gradeService from 'src/services/grade.service'
 import reviewGradeService from 'src/services/reviewGrade.service'
 import classroomService from 'src/services/classroom.service'
 import { CLASSROOM_ROLE, NOTIFICATION_STATUS } from 'src/utils/constants'
+import socket from 'src/socket'
 
 @controller('/api/classrooms/:id/grades')
 class GradesCtrl extends BaseCtrl {
@@ -154,6 +155,9 @@ class GradesCtrl extends BaseCtrl {
 
       await db.Notification.bulkCreate(notifications)
 
+      const studentIds = students.map((s) => s.userId)
+      socket.notifyMultipleClients(studentIds)
+
       res.status(httpStatusCodes.OK).send({ message: 'Finalized success' })
     } catch (error) {
       debug.log('grade-ctrl', error.message)
@@ -245,6 +249,7 @@ class GradesCtrl extends BaseCtrl {
             content: `Teacher have reply your review on grade ${grade.name}`,
             status: NOTIFICATION_STATUS.UNREAD,
           })
+          socket.notifyClient(ownerId)
         }
       } catch (error) {
         res.status(httpStatusCodes.BAD_REQUEST).send({ message: 'Comment review fail' })
@@ -271,6 +276,7 @@ class GradesCtrl extends BaseCtrl {
         content: `Teacher have finalize your review on grade ${updatedGrade.name}`,
         status: NOTIFICATION_STATUS.UNREAD,
       })
+      socket.notifyClient(userId)
 
       res.status(httpStatusCodes.OK).send({ gradeUser })
     } catch (error) {
