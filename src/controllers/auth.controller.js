@@ -1,5 +1,5 @@
 import BaseCtrl from './base'
-import { controller, get, post } from 'route-decorators'
+import { controller, get, post, put } from 'route-decorators'
 import httpStatusCodes from 'http-status-codes'
 import { hashPassword } from '../utils/crypto'
 import db from '../models/index'
@@ -294,6 +294,22 @@ class AuthCtrl extends BaseCtrl {
     } catch (err) {
       res.status(httpStatusCodes.BAD_REQUEST).send(err.message)
     }
+  }
+  @put('/forgot-password')
+  async forgotPassword(req, res) {
+    const { email } = req.body
+    const checkUser = await db.User.findOne({
+      where: { email: String(email).toLowerCase() },
+    })
+    if (!checkUser) {
+      res.status(400).json({ success: false, message: 'Email does not exist' })
+    }
+    const activation_token = jwt.sign({ id: checkUser.id }, process.env.RESET_PASSWORD_KEY, {
+      expiresIn: '5m',
+    })
+    const url = `${process.env.FRONTEND_URL}/resetpassword/${activation_token}`
+    const emailTemplate = generateVerifyEmailTemplate(url)
+    sendEmail(email, emailTemplate)
   }
 }
 export default AuthCtrl
