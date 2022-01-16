@@ -7,6 +7,7 @@
 import app from '../app'
 import debug from '../utils/debug'
 import http from 'http'
+import {initSocket} from 'src/socket'
 
 /**
  * Get port from environment and store in Express.
@@ -24,6 +25,8 @@ const server = http.createServer(app)
 /**
  * Listen on provided port, on all network interfaces.
  */
+
+initSocket(server)
 
 server.listen(port)
 server.on('error', onError)

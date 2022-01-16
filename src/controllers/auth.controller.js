@@ -7,7 +7,11 @@ import passport from 'passport'
 import jwt from 'jsonwebtoken'
 import { validateEmail, checkPassword } from '../services/auth.service'
 import { google } from 'googleapis'
-import { sendEmail, generateVerifyEmailTemplate } from '../utils/mail'
+import {
+  sendEmail,
+  generateVerifyEmailTemplate,
+  generateResetPasswordEmailTemplate,
+} from '../utils/mail'
 import { ACCOUNT_STATUS, CLASSROOM_ROLE } from '../utils/constants'
 import { auth, ensureRoles } from '../middleware'
 
@@ -295,21 +299,48 @@ class AuthCtrl extends BaseCtrl {
       res.status(httpStatusCodes.BAD_REQUEST).send(err.message)
     }
   }
-  @put('/forgot-password')
+  @post('/forgot-password')
   async forgotPassword(req, res) {
-    const { email } = req.body
-    const checkUser = await db.User.findOne({
-      where: { email: String(email).toLowerCase() },
-    })
-    if (!checkUser) {
-      res.status(400).json({ success: false, message: 'Email does not exist' })
+    try {
+      const { email } = req.body
+      const checkUser = await db.User.findOne({
+        where: { email: String(email).toLowerCase() },
+      })
+      if (!checkUser) {
+        res.status(400).json({ success: false, message: 'Email does not exist' })
+      }
+      const activation_token = jwt.sign({ id: checkUser.id }, process.env.ACTIVATION_TOKEN_SECRET, {
+        expiresIn: '5m',
+      })
+      const url = `${process.env.FRONTEND_URL}/resetpassword/${activation_token}`
+      const emailTemplate = generateResetPasswordEmailTemplate(url)
+      sendEmail(email, emailTemplate)
+      res
+        .status(httpStatusCodes.CREATED)
+        .send({ success: true, message: 'Re-send the password, please check your email.' })
+    } catch (error) {
+      res.status(httpStatusCodes.BAD_REQUEST).send(error.message)
     }
-    const activation_token = jwt.sign({ id: checkUser.id }, process.env.RESET_PASSWORD_KEY, {
-      expiresIn: '5m',
-    })
-    const url = `${process.env.FRONTEND_URL}/resetpassword/${activation_token}`
-    const emailTemplate = generateVerifyEmailTemplate(url)
-    sendEmail(email, emailTemplate)
+  }
+  @post('/reset-password')
+  async resetPassword(req, res) {
+    try {
+      const { activation_token, password } = req.body
+      const user = jwt.verify(activation_token, process.env.ACTIVATION_TOKEN_SECRET)
+      if (checkPassword(password)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Password must at least 6 characters.',
+        })
+      }
+      const hash = await hashPassword(password)
+      await db.User.update({ password: hash }, { where: { id: user.id } })
+      res
+        .status(httpStatusCodes.CREATED)
+        .send({ success: true, message: 'Change password success!' })
+    } catch (error) {
+      res.status(httpStatusCodes.BAD_REQUEST).send(error.message)
+    }
   }
 }
 export default AuthCtrl
