@@ -15,7 +15,6 @@ export async function getReviewGradebyId(reviewGradeId) {
       include: [
         {
           model: db.GradeUser,
-          attributes: ['point'],
           include: [{ model: db.User, attributes: ['username', 'studentId'] }],
         },
         { model: db.Grade },

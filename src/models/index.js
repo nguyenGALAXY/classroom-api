@@ -45,11 +45,11 @@ db.Grade.hasMany(db.GradeUser, { foreignKey: 'gradeId' })
 
 db.GradeUser.belongsTo(db.Grade, { foreignKey: 'gradeId' })
 db.GradeUser.belongsTo(db.User, { foreignKey: 'userId' })
-db.GradeUser.belongsTo(db.ReviewGrade, { foreignKey: 'gradeId' })
+db.GradeUser.belongsTo(db.ReviewGrade, { foreignKey: 'reviewGradeId' })
 
 db.ReviewGrade.belongsTo(db.User, { foreignKey: 'ownerId' })
 db.ReviewGrade.belongsTo(db.Grade, { foreignKey: 'gradeId' })
-db.ReviewGrade.belongsTo(db.GradeUser, { foreignKey: 'gradeId' })
+db.ReviewGrade.hasOne(db.GradeUser, { foreignKey: 'reviewGradeId' })
 
 db.ReviewGrade.hasMany(db.CommentReviewGrade, { foreignKey: 'reviewGradeId' })
 
