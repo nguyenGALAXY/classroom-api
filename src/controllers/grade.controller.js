@@ -190,6 +190,24 @@ class GradesCtrl extends BaseCtrl {
             where: { gradeId, userId },
           }
         )
+
+        // notify to all teacher of the classes
+        const grade = await db.Grade.findByPk(gradeId, { raw: true })
+        const classroom = await db.Classroom.findByPk(grade.classroomId)
+        const teachers = await classroomService.getUsersByClassroomId(classroom.id, {
+          roles: [CLASSROOM_ROLE.TEACHER],
+        })
+
+        const notifications = teachers.map((t) => ({
+          userId: t.userId,
+          content: `New grade review in classroom ${classroom.name} for grade ${grade.name}`,
+          status: NOTIFICATION_STATUS.UNREAD,
+        }))
+        await db.Notification.bulkCreate(notifications)
+
+        const teacherIds = await teachers.map((t) => t.userId)
+        socket.notifyMultipleClients(teacherIds)
+
         res.status(httpStatusCodes.OK).send({ reviewGradeId, message: 'Request review success' })
       } catch (error) {
         res.status(httpStatusCodes.BAD_REQUEST).send({ message: error.message })
